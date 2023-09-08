@@ -85,7 +85,7 @@
             state.data.borisChen.raw = getBorischenFormData();
             state.data.borisChen.parsed = parseBorischenRawData(state.data.borisChen.raw);
             state.data.subvertADown.raw = getSubvertADownFormData();
-            //state.data.subvertADown.parsed = parseSubvertADownRawData(state.data.borisChen.raw);
+            state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
             saveToLocalStorage(state);
             hideSettings();
             updatePlayerInfo();
@@ -151,6 +151,84 @@
             return tab;
         }
 
+        function getBorischenFormData() {
+            const data = {};
+
+            const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
+
+            for (const position of positions) {
+                data[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
+            }
+
+            return data;
+        }
+
+        function parseBorischenRawData(rawTierData) {
+            const players = {};
+
+            parseTierInfo(rawTierData.QB, players);
+            parseTierInfo(rawTierData.RB, players);
+            parseTierInfo(rawTierData.WR, players);
+            parseTierInfo(rawTierData.TE, players);
+            parseTierInfo(removeCityFromDST(rawTierData.DST), players);
+            parseTierInfo(rawTierData.K, players);
+
+            return players;
+
+            function parseTierInfo(raw, playerDictionary) {
+                if (!raw) {
+                    return
+                }
+
+                const tiers = raw.split('\n');
+
+                tiers.forEach(tierRow => {
+                    const row = tierRow.split(': ');
+                    const tier = row[0].replace('Tier ', '');
+                    const players = row[1];
+
+                    players?.split(', ').forEach((player, index) => {
+                        playerDictionary[player] = `${tier}.${index + 1}`;
+                    });
+                });
+
+
+                return playerDictionary;
+            }
+
+            function removeCityFromDST(raw) {
+                if (!raw) {
+                    return;
+                }
+
+                const tiers = raw.split('\n');
+                const output = [];
+
+                tiers.forEach(tierRow => {
+                    const row = tierRow.split(': ');
+                    const tier = row[0];
+                    const teams = row[1];
+                    let rowOutput = `${tier}: `;
+                    let isFirst = true;
+
+                    teams?.split(', ').forEach(team => {
+                        const name = team.split(' ').pop();
+
+                        if (isFirst) {
+                            rowOutput += `${name} D/ST`;
+                            isFirst = false;
+                        } else {
+                            rowOutput += `, ${name} D/ST`;
+                        }
+                    });
+
+                    output.push(rowOutput);
+                });
+
+                return output.join('\n');
+            }
+        }
+
         function createSubvertADownTab(savedData) {
             const tab = document.createElement('div');
             tab.id = selectors.settingPanel.subvertADown;
@@ -185,6 +263,53 @@
             }
 
             return tab;
+        }
+
+        function getSubvertADownFormData() {
+            const data = {};
+
+            const positions = ['QB', 'DST', 'K'];
+
+            for (const position of positions) {
+                data[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
+            }
+
+            return data;
+        }
+
+        function parseSubvertADownFormRawData(rawData) {
+            const players = {};
+
+            processData(rawData.DST, players);
+            processData(rawData.QB, players);
+            processData(rawData.K, players);
+
+            return players;
+            
+            function processData(input, players) {
+                const lines = input.trim().split('\n');
+
+                let player = '';
+                lines.forEach(line => {
+                    // skip blank lines
+                    if (!line.trim()) {
+                        return;
+                    }
+
+                    if (!player) {
+                        player = line.split('|')[0].trim();
+                    } else {
+                        value = line.trim();
+                        players[player] = value;
+
+                        // reset for next iteration
+                        player = ''
+                    }
+                })
+
+
+                return players;
+            }
         }
 
         function hideAllTabs() {
@@ -243,7 +368,8 @@
         return (item && typeof item === 'object' && !Array.isArray(item));
     }
 
-
+    // copy pasta from https://stackoverflow.com/a/34749873/276681
+    // didn't want to pull in lodash just yet
     function mergeDeep(target, ...sources) {
         if (!sources.length) return target;
         const source = sources.shift();
@@ -262,95 +388,6 @@
         return mergeDeep(target, ...sources);
     }
 
-    function getBorischenFormData() {
-        const data = {};
-
-        const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
-
-        for (const position of positions) {
-            data[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
-        }
-
-        return data;
-    }
-
-    function getSubvertADownFormData() {
-        const data = {};
-
-        const positions = ['QB', 'DST', 'K'];
-
-        for (const position of positions) {
-            data[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
-        }
-
-        return data;
-    }
-
-    function parseBorischenRawData(rawTierData) {
-        const players = {};
-
-        parseTierInfo(rawTierData.QB, players);
-        parseTierInfo(rawTierData.RB, players);
-        parseTierInfo(rawTierData.WR, players);
-        parseTierInfo(rawTierData.TE, players);
-        parseTierInfo(removeCityFromDST(rawTierData.DST), players);
-        parseTierInfo(rawTierData.K, players);
-
-        return players;
-
-        function parseTierInfo(raw, playerDictionary) {
-            if (!raw) {
-                return
-            }
-
-            const tiers = raw.split('\n');
-
-            tiers.forEach(tierRow => {
-                const row = tierRow.split(': ');
-                const tier = row[0].replace('Tier ', '');
-                const players = row[1];
-
-                players?.split(', ').forEach((player, index) => {
-                    playerDictionary[player] = `${tier}.${index + 1}`;
-                });
-            });
-
-
-            return playerDictionary;
-        }
-
-        function removeCityFromDST(raw) {
-            if (!raw) {
-                return;
-            }
-
-            const tiers = raw.split('\n');
-            const output = [];
-
-            tiers.forEach(tierRow => {
-                const row = tierRow.split(': ');
-                const tier = row[0];
-                const teams = row[1];
-                let rowOutput = `${tier}: `;
-                let isFirst = true;
-
-                teams?.split(', ').forEach(team => {
-                    const name = team.split(' ').pop();
-
-                    if (isFirst) {
-                        rowOutput += `${name} D/ST`;
-                        isFirst = false;
-                    } else {
-                        rowOutput += `, ${name} D/ST`;
-                    }
-                });
-
-                output.push(rowOutput);
-            });
-
-            return output.join('\n');
-        }
-    }
 
     function makePageButton(id, text, offset, onClick) {
         const existingBtn = document.getElementById(id);
