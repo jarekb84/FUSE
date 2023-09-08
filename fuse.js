@@ -21,13 +21,17 @@
             span.remove();
         });
 
-        const players = getStoredData().data.borisChen.parsed;
+        const data = getStoredData().data;
+        const borisChen = data.borisChen.parsed
+        const subvertADown = data.subvertADown.parsed
 
         document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
             const name = playerNameEl.innerText;
-            const playerTier = players[name];
+            const borisChenTier = borisChen[name];
+            const subvertADownValue = subvertADown[name];
+            const info = [borisChenTier, subvertADownValue].filter(val => val);
 
-            if (!playerTier || !name) {
+            if (!info.length || !name) {
                 return
             }
 
@@ -42,7 +46,7 @@
                     span.className = selectors.playerInfo;
                     span.style.marginRight = '2px';
                     span.style.fontWeight = '900';
-                    span.textContent = playerTier;
+                    span.textContent = `${info.join('/')}`;
 
                     playerPositionElem.insertBefore(span, playerPositionElem.firstChild);
                 }
@@ -285,7 +289,7 @@
             processData(rawData.K, players);
 
             return players;
-            
+
             function processData(input, players) {
                 const lines = input.trim().split('\n');
 
