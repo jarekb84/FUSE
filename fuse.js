@@ -12,6 +12,8 @@
         localStorage: 'fuseStorage'
     }
 
+    updatePlayerInfo();
+
     makePageButton(selectors.runUpdateBtn, 'Update', 150, updatePlayerInfo);
 
     function updatePlayerInfo() {
@@ -395,7 +397,6 @@
 
         return mergeDeep(target, ...sources);
     }
-
 
     function makePageButton(id, text, offset, onClick) {
         const existingBtn = document.getElementById(id);
