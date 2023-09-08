@@ -10,9 +10,7 @@
         localStorage: 'fuseStorage'
     }
 
-    const runUpdateBtn = makeButton(selectors.runUpdateBtn, 'Update', 150);
-
-    runUpdateBtn.addEventListener('click', updatePlayerInfo);
+    makePageButton(selectors.runUpdateBtn, 'Update', 150, updatePlayerInfo);
 
     function updatePlayerInfo() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
@@ -50,9 +48,7 @@
         });
     }
 
-    const configure = makeButton(selectors.showSettingsBtn, '⚙', 175);
-
-    configure.addEventListener('click', editSettings);
+    makePageButton(selectors.showSettingsBtn, '⚙', 175, editSettings);
 
     function editSettings() {
         if (document.getElementById(selectors.settingPanel.name)) {
@@ -61,52 +57,13 @@
             return;
         }
 
-        const section = document.createElement('div');
+        let settingsPanel = createMainSettingsPanel();
+        const savedData = getStoredData().data
 
-        section.setAttribute('id', selectors.settingPanel.name);
-        section.style.position = 'absolute';
-        section.style.top = '200px';
-        section.style.right = '0';
-        section.style.backgroundColor = '#f9f9f9';
-        section.style.width = '200px';
+        const borisChenTab = createBorisChenTab(savedData.borischen)
+        settingsPanel.appendChild(borisChenTab);
 
-        section.style.padding = '15px';
-        section.style.border = '1px solid #ccc';
-        section.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
-
-
-        const helpText = document.createElement('p');
-
-        helpText.textContent = 'To get the tier data from www.borischen.co for your league\'s point values and paste the raw tier info into the below text areas.';
-        section.appendChild(helpText);
-
-        const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
-        const savedData = getStoredData().data.borischen.raw;
-
-        for (const position of positions) {
-            const label = document.createElement('label');
-
-            label.textContent = position;
-
-            const textarea = document.createElement('textarea');
-
-            textarea.setAttribute('id', `${selectors.settingPanel.borischen}_${position}`);
-            if (savedData[position]) {
-                textarea.value = savedData[position];
-            }
-
-            section.appendChild(label);
-            section.appendChild(document.createElement('br'));
-
-            section.appendChild(textarea);
-            section.appendChild(document.createElement('br'));
-
-        }
-
-        const saveBtn = document.createElement('button');
-
-        saveBtn.textContent = 'Save';
-        saveBtn.addEventListener('click', () => {
+        const saveBtn = makeButton('Save', () => {
             let state = {
                 data: {
                     borischen: {
@@ -121,15 +78,60 @@
             hideSettings();
             updatePlayerInfo();
         });
-        section.appendChild(saveBtn);
+        
+        settingsPanel.appendChild(saveBtn);
+        settingsPanel.appendChild(makeButton('Hide', hideSettings));
 
-        const hideBtn = document.createElement('button');
+        document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
 
-        hideBtn.textContent = 'Hide';
-        hideBtn.addEventListener('click', hideSettings);
-        section.appendChild(hideBtn);
+        function createMainSettingsPanel() {
+            const settingsPanel = document.createElement('div');
 
-        document.body.insertBefore(section, document.getElementById(selectors.showSettingsBtn).nextSibling);
+            settingsPanel.setAttribute('id', selectors.settingPanel.name);
+            settingsPanel.style.position = 'absolute';
+            settingsPanel.style.top = '200px';
+            settingsPanel.style.right = '0';
+            settingsPanel.style.backgroundColor = '#f9f9f9';
+            settingsPanel.style.width = '400px';
+
+            settingsPanel.style.padding = '15px';
+            settingsPanel.style.border = '1px solid #ccc';
+            settingsPanel.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
+
+            return settingsPanel
+        }
+
+        function createBorisChenTab(savedData){
+            const tab = document.createElement('div');
+            tab.id = selectors.settingPanel.borischen;
+            const helpText = document.createElement('p');
+
+            helpText.textContent = 'To get the tier data from www.borischen.co for your league\'s point values and paste the raw tier info into the below text areas.';
+            tab.appendChild(helpText);
+    
+            const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];            
+    
+            for (const position of positions) {
+                const label = document.createElement('label');
+    
+                label.textContent = position;
+    
+                const textarea = document.createElement('textarea');
+    
+                textarea.setAttribute('id', `${selectors.settingPanel.borischen}_${position}`);
+                if (savedData.raw[position]) {
+                    textarea.value = savedData.raw[position];
+                }
+    
+                tab.appendChild(label);
+                tab.appendChild(document.createElement('br'));
+    
+                tab.appendChild(textarea);
+                tab.appendChild(document.createElement('br'));    
+            }
+
+            return tab;
+        }
     }
 
     function hideSettings() {
@@ -235,17 +237,16 @@
         }
     }
 
-    function makeButton(id, text, offset) {
+    function makePageButton(id, text, offset, onClick) {
         const existingBtn = document.getElementById(id);
 
         if (document.contains(existingBtn)) {
             existingBtn.remove();
         }
 
-        const button = document.createElement('button');
-
+        const button = makeButton(text, onClick);
         button.id = id;
-        button.innerHTML = text;
+
         button.style.position = 'absolute';
         button.style.top = `${offset}px`;
         button.style.right = 0;
@@ -255,6 +256,15 @@
         const body = document.getElementsByTagName('body')[0];
 
         body.appendChild(button);
+
+        return button;
+    }
+
+    function makeButton(text, onClick) {
+        const button = document.createElement('button');
+        
+        button.innerHTML = text;
+        button.addEventListener('click', onClick);
 
         return button;
     }
