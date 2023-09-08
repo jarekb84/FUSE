@@ -1,0 +1,21 @@
+{
+  "name": "fuse",
+  "version": "0.1.0",
+  "description": "FUSE: Fantasy User Stat Enhancer",
+  "main": "fuse.js",  
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jarekb84/FUSE.git"
+  },
+  "keywords": [
+    "fantasy",
+    "sport",
+    "tool"
+  ],
+  "author": "Jerry Batorski",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/jarekb84/FUSE/issues"
+  },
+  "homepage": "https://github.com/jarekb84/FUSE#readme"
+}
