@@ -284,13 +284,13 @@
         function parseSubvertADownFormRawData(rawData) {
             const players = {};
 
-            processData(rawData.DST, players);
+            processData(rawData.DST, players, true);
             processData(rawData.QB, players);
             processData(rawData.K, players);
 
             return players;
 
-            function processData(input, players) {
+            function processData(input, players, isDST) {
                 const lines = input.trim().split('\n');
 
                 let player = '';
@@ -302,6 +302,10 @@
 
                     if (!player) {
                         player = line.split('|')[0].trim();
+
+                        if(isDST){
+                            player = `${player} D/ST`;
+                        }
                     } else {
                         value = line.trim();
                         players[player] = value;
