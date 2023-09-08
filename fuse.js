@@ -5,7 +5,8 @@
         showSettingsBtn: 'fuseShowSettings',
         settingPanel: {
             name: 'fuseSettingsPanel',
-            borischen: 'fuseSettingsPanel_borischen'
+            tabs:  'fuseSettingsPanel__tabs',
+            borischen: 'fuseSettingsPanel__tabs__borischen'
         },
         localStorage: 'fuseStorage'
     }
@@ -61,7 +62,29 @@
         const savedData = getStoredData().data
 
         const borisChenTab = createBorisChenTab(savedData.borischen)
+
+        const toggleBorisChenTab =  makeButton('BorisChen', () => {
+            hideAllTabs()            
+            showTab(borisChenTab.id)
+        });
+
+        function hideAllTabs(){
+            const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
+
+            tabs.forEach(tab => {
+                tab.style.visibility = 'hidden';
+            });
+        };
+
+        function showTab(tabId){
+            var element = document.getElementById(tabId);    
+            element.style.visibility = 'visible';
+        }
+
+        settingsPanel.appendChild(toggleBorisChenTab);
+
         settingsPanel.appendChild(borisChenTab);
+        settingsPanel.appendChild(document.createElement('br'));    
 
         const saveBtn = makeButton('Save', () => {
             let state = {
@@ -93,6 +116,7 @@
             settingsPanel.style.right = '0';
             settingsPanel.style.backgroundColor = '#f9f9f9';
             settingsPanel.style.width = '400px';
+            settingsPanel.style.padding = '10px';
 
             settingsPanel.style.padding = '15px';
             settingsPanel.style.border = '1px solid #ccc';
@@ -104,10 +128,13 @@
         function createBorisChenTab(savedData){
             const tab = document.createElement('div');
             tab.id = selectors.settingPanel.borischen;
+            tab.className = selectors.settingPanel.tabs;
+            tab.appendChild(document.createElement('br'));
             const helpText = document.createElement('p');
 
             helpText.textContent = 'To get the tier data from www.borischen.co for your league\'s point values and paste the raw tier info into the below text areas.';
             tab.appendChild(helpText);
+            tab.appendChild(document.createElement('br'));
     
             const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];            
     
@@ -117,6 +144,7 @@
                 label.textContent = position;
     
                 const textarea = document.createElement('textarea');
+                textarea.style.width = '350px';
     
                 textarea.setAttribute('id', `${selectors.settingPanel.borischen}_${position}`);
                 if (savedData.raw[position]) {
