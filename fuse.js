@@ -5,8 +5,9 @@
         showSettingsBtn: 'fuseShowSettings',
         settingPanel: {
             name: 'fuseSettingsPanel',
-            tabs:  'fuseSettingsPanel__tabs',
-            borischen: 'fuseSettingsPanel__tabs__borischen'
+            tabs: 'fuseSettingsPanel__tabs',
+            borisChen: 'fuseSettingsPanel__tabs__borisChen',
+            subvertADown: 'fuseSettingsPanel__tabs__subvertADown'
         },
         localStorage: 'fuseStorage'
     }
@@ -20,7 +21,7 @@
             span.remove();
         });
 
-        const players = getStoredData().data.borischen.parsed;
+        const players = getStoredData().data.borisChen.parsed;
 
         document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
             const name = playerNameEl.innerText;
@@ -61,51 +62,40 @@
         let settingsPanel = createMainSettingsPanel();
         const savedData = getStoredData().data
 
-        const borisChenTab = createBorisChenTab(savedData.borischen)
+        const borisChenTab = createBorisChenTab(savedData.borisChen)
 
-        const toggleBorisChenTab =  makeButton('BorisChen', () => {
-            hideAllTabs()            
-            showTab(borisChenTab.id)
+        const toggleBorisChenTab = makeButton('BorisChen', () => {
+            toggleTabs(borisChenTab.id)
         });
 
-        function hideAllTabs(){
-            const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
-
-            tabs.forEach(tab => {
-                tab.style.visibility = 'hidden';
-            });
-        };
-
-        function showTab(tabId){
-            var element = document.getElementById(tabId);    
-            element.style.visibility = 'visible';
-        }
-
+        const subvertADownTab = createSubvertADownTab(savedData.subvertADown);
+        const toggleSubvertADownTab = makeButton('SubvertADown', () => {
+            toggleTabs(subvertADownTab.id)
+        });
         settingsPanel.appendChild(toggleBorisChenTab);
-
+        settingsPanel.appendChild(toggleSubvertADownTab);
         settingsPanel.appendChild(borisChenTab);
-        settingsPanel.appendChild(document.createElement('br'));    
+        settingsPanel.appendChild(subvertADownTab);
+
+        settingsPanel.appendChild(document.createElement('br'));
 
         const saveBtn = makeButton('Save', () => {
-            let state = {
-                data: {
-                    borischen: {
-                        raw: getBorischenFormData(),
-                        parsed: {}
-                    }
-                }
-            }
+            let state = getStoredData();
 
-            state.data.borischen.parsed = parseBorischenRawData(state.data.borischen.raw);
+            state.data.borisChen.raw = getBorischenFormData();
+            state.data.borisChen.parsed = parseBorischenRawData(state.data.borisChen.raw);
+            state.data.subvertADown.raw = getSubvertADownFormData();
+            //state.data.subvertADown.parsed = parseSubvertADownRawData(state.data.borisChen.raw);
             saveToLocalStorage(state);
             hideSettings();
             updatePlayerInfo();
         });
-        
+
         settingsPanel.appendChild(saveBtn);
         settingsPanel.appendChild(makeButton('Hide', hideSettings));
 
         document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
+        toggleTabs(borisChenTab.id);
 
         function createMainSettingsPanel() {
             const settingsPanel = document.createElement('div');
@@ -125,40 +115,94 @@
             return settingsPanel
         }
 
-        function createBorisChenTab(savedData){
+        function createBorisChenTab(savedData) {
             const tab = document.createElement('div');
-            tab.id = selectors.settingPanel.borischen;
+            tab.id = selectors.settingPanel.borisChen;
             tab.className = selectors.settingPanel.tabs;
             tab.appendChild(document.createElement('br'));
             const helpText = document.createElement('p');
 
-            helpText.textContent = 'To get the tier data from www.borischen.co for your league\'s point values and paste the raw tier info into the below text areas.';
+            helpText.textContent = 'To get the tier data from www.borisChen.co for your league\'s point values and paste the raw tier info into the below text areas.';
             tab.appendChild(helpText);
             tab.appendChild(document.createElement('br'));
-    
-            const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];            
-    
+
+            const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
+
             for (const position of positions) {
                 const label = document.createElement('label');
-    
+
                 label.textContent = position;
-    
+
                 const textarea = document.createElement('textarea');
                 textarea.style.width = '350px';
-    
-                textarea.setAttribute('id', `${selectors.settingPanel.borischen}_${position}`);
+
+                textarea.setAttribute('id', `${selectors.settingPanel.borisChen}_${position}`);
                 if (savedData.raw[position]) {
                     textarea.value = savedData.raw[position];
                 }
-    
+
                 tab.appendChild(label);
                 tab.appendChild(document.createElement('br'));
-    
+
                 tab.appendChild(textarea);
-                tab.appendChild(document.createElement('br'));    
+                tab.appendChild(document.createElement('br'));
             }
 
             return tab;
+        }
+
+        function createSubvertADownTab(savedData) {
+            const tab = document.createElement('div');
+            tab.id = selectors.settingPanel.subvertADown;
+            tab.className = selectors.settingPanel.tabs;
+            tab.appendChild(document.createElement('br'));
+            const helpText = document.createElement('p');
+
+            helpText.textContent = 'Copy data from https://subvertadown.com and paste the raw tier info into the below text areas.';
+            tab.appendChild(helpText);
+            tab.appendChild(document.createElement('br'));
+
+            const positions = ['DST', 'QB', 'K'];
+
+            for (const position of positions) {
+                const label = document.createElement('label');
+
+                label.textContent = position;
+
+                const textarea = document.createElement('textarea');
+                textarea.style.width = '350px';
+
+                textarea.setAttribute('id', `${selectors.settingPanel.subvertADown}_${position}`);
+                if (savedData?.raw[position]) {
+                    textarea.value = savedData.raw[position];
+                }
+
+                tab.appendChild(label);
+                tab.appendChild(document.createElement('br'));
+
+                tab.appendChild(textarea);
+                tab.appendChild(document.createElement('br'));
+            }
+
+            return tab;
+        }
+
+        function hideAllTabs() {
+            const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
+
+            tabs.forEach(tab => {
+                tab.style.display = 'none';
+            });
+        };
+
+        function showTab(tabId) {
+            var element = document.getElementById(tabId);
+            element.style.display = 'block';
+        }
+
+        function toggleTabs(tabId) {
+            hideAllTabs();
+            showTab(tabId);
         }
     }
 
@@ -168,23 +212,54 @@
 
     function getStoredData() {
         const storedData = localStorage.getItem(selectors.localStorage);
-        const parsedData = JSON.parse(storedData) || {
+        const parsedData = JSON.parse(storedData) || {};
+
+        let defaults = {
             data: {
-                borischen: {
+                borisChen: {
+                    raw: {},
+                    parsed: {}
+                },
+                subvertADown: {
                     raw: {},
                     parsed: {}
                 }
             }
         };
 
-        console.log(parsedData)
+        const result = mergeDeep(defaults, parsedData)
 
-        return parsedData;
+        console.log(result)
+
+        return result;
     }
 
     function saveToLocalStorage(data) {
         localStorage.setItem(selectors.localStorage, JSON.stringify(data));
         console.log(data)
+    }
+
+    function isObject(item) {
+        return (item && typeof item === 'object' && !Array.isArray(item));
+    }
+
+
+    function mergeDeep(target, ...sources) {
+        if (!sources.length) return target;
+        const source = sources.shift();
+
+        if (isObject(target) && isObject(source)) {
+            for (const key in source) {
+                if (isObject(source[key])) {
+                    if (!target[key]) Object.assign(target, { [key]: {} });
+                    mergeDeep(target[key], source[key]);
+                } else {
+                    Object.assign(target, { [key]: source[key] });
+                }
+            }
+        }
+
+        return mergeDeep(target, ...sources);
     }
 
     function getBorischenFormData() {
@@ -193,7 +268,19 @@
         const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
 
         for (const position of positions) {
-            data[position] = document.getElementById(`${selectors.settingPanel.borischen}_${position}`).value;
+            data[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
+        }
+
+        return data;
+    }
+
+    function getSubvertADownFormData() {
+        const data = {};
+
+        const positions = ['QB', 'DST', 'K'];
+
+        for (const position of positions) {
+            data[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
         }
 
         return data;
@@ -290,7 +377,7 @@
 
     function makeButton(text, onClick) {
         const button = document.createElement('button');
-        
+
         button.innerHTML = text;
         button.addEventListener('click', onClick);
 
