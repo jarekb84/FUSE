@@ -16,8 +16,7 @@ jobs:
       - name: Automated Version Bump
         uses: phips28/gh-action-bump-version@v10.0.1
         id: version-bump 
-        with:            
-            release-branch: main
+        with:
             minor-wording: 'MINOR'
             major-wording: 'MAJOR'
             default: patch
