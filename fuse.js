@@ -147,7 +147,7 @@
             const prefixInput = document.createElement('input');
             prefixInput.id = `${selectors.settingPanel.borisChen}_prefix`
             prefixInput.placeholder = 'Ex: BC'
-            prefixInput.value = savedData.prefix;
+            prefixInput.value = savedData.prefix || '';
 
             tab.appendChild(prefixLabel);
             tab.appendChild(document.createElement('br'));
@@ -278,7 +278,7 @@
             const prefixInput = document.createElement('input');
             prefixInput.id = `${selectors.settingPanel.subvertADown}_prefix`
             prefixInput.placeholder = 'Ex: SD'
-            prefixInput.value = savedData.prefix;
+            prefixInput.value = savedData.prefix || '';
 
             tab.appendChild(prefixLabel);
             tab.appendChild(document.createElement('br'));
