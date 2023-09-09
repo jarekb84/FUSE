@@ -21,6 +21,7 @@ jobs:
         with:
             minor-wording: 'MINOR'
             major-wording: 'MAJOR'
+            tag-prefix: 'v'
             default: patch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
