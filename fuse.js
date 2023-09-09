@@ -120,6 +120,8 @@
             settingsPanel.style.backgroundColor = '#f9f9f9';
             settingsPanel.style.width = '400px';
             settingsPanel.style.padding = '10px';
+            settingsPanel.style.zIndex = '1000';
+
 
             settingsPanel.style.padding = '15px';
             settingsPanel.style.border = '1px solid #ccc';

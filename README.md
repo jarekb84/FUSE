@@ -1,10 +1,29 @@
 # FUSE
 FUSE (Fantasy User Stat Enhancer)
 
-FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data. Currently, extending ESPN player names with Borischen tier is supported. Check out the example below
+FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data. Currently, extending ESPN player names is supported with the following capabilities
 
-![Alt text here](assets/espn_team_overview.png)
+- Borischen tiers
+- SubvertADown streaming values
 
+Check out the example below
+
+![ESPN Team Overview](assets/espn_team_overview.png)
+
+## Copying data
+Copying data is done manually by copying and pasting the data from a given site. FUSE includes some logic to transform the pasted text into something which can be used to extend ESPN player info.
+
+### Borischen
+Go to the position page in [borischen.co](http://www.borischen.co/) that's relevant for your league's scoring rules and copy the data over to FUSE.
+
+You may need to tweak some player names if they differ from what's shown in ESPN, otherwise FUSE info won't be added. For example Borischen shows `Patrick Mahomes II` while ESPN omits the `II`.
+
+![Borischen copying data example](assets/borischen_copying.png)
+
+### SubvertADown
+Go to [subvertadown.com](https://subvertadown.com/) and copy the position stats on the home page over to FUSE. The full projection page tables are not supported.
+
+![SubvertADown copying data example](assets/subvertadown_copying.png)
 
 ## Install instructions 
 
