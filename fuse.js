@@ -24,14 +24,21 @@
         });
 
         const data = getStoredData().data;
-        const borisChen = data.borisChen.parsed
-        const subvertADown = data.subvertADown.parsed
+        const borisChen = data.borisChen;
+        const subvertADown = data.subvertADown;
 
         document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
             const name = playerNameEl.innerText;
-            const borisChenTier = borisChen[name];
-            const subvertADownValue = subvertADown[name];
-            const info = [borisChenTier, subvertADownValue].filter(val => val);
+            const borisChenTier = borisChen.parsed[name];
+            const subvertADownValue = subvertADown.parsed[name];
+            let info = [];
+
+            if(borisChenTier){
+                info.push(`${borisChen.prefix || ''}${borisChenTier}`)
+            }
+            if(subvertADownValue){
+                info.push(`${subvertADown.prefix || ''}${subvertADownValue}`)
+            }
 
             if (!info.length || !name) {
                 return
@@ -88,9 +95,9 @@
         const saveBtn = makeButton('Save', () => {
             let state = getStoredData();
 
-            state.data.borisChen.raw = getBorischenFormData();
+            state.data.borisChen = {...state.data.borisChen, ...getBorischenFormData()};
             state.data.borisChen.parsed = parseBorischenRawData(state.data.borisChen.raw);
-            state.data.subvertADown.raw = getSubvertADownFormData();
+            state.data.subvertADown = {...state.data.borisChen, ...getSubvertADownFormData()};
             state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
             saveToLocalStorage(state);
             hideSettings();
@@ -132,6 +139,20 @@
             tab.appendChild(helpText);
             tab.appendChild(document.createElement('br'));
 
+            const prefixLabel = document.createElement('label');
+            prefixLabel.textContent = 'Prefix (optional)';
+
+            const prefixInput = document.createElement('input');
+            prefixInput.id = `${selectors.settingPanel.borisChen}_prefix`
+            prefixInput.placeholder = 'Ex: BC'
+            prefixInput.value = savedData.prefix;
+
+            tab.appendChild(prefixLabel);
+            tab.appendChild(document.createElement('br'));
+            tab.appendChild(prefixInput);
+
+            tab.appendChild(document.createElement('br'));
+
             const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
 
             for (const position of positions) {
@@ -158,12 +179,15 @@
         }
 
         function getBorischenFormData() {
-            const data = {};
+            const data = {
+                raw: {},
+                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value
+            };
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
 
             for (const position of positions) {
-                data[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
+                data.raw[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
             }
 
             return data;
@@ -246,6 +270,20 @@
             tab.appendChild(helpText);
             tab.appendChild(document.createElement('br'));
 
+            const prefixLabel = document.createElement('label');
+            prefixLabel.textContent = 'Prefix (optional)';
+
+            const prefixInput = document.createElement('input');
+            prefixInput.id = `${selectors.settingPanel.subvertADown}_prefix`
+            prefixInput.placeholder = 'Ex: SD'
+            prefixInput.value = savedData.prefix;
+
+            tab.appendChild(prefixLabel);
+            tab.appendChild(document.createElement('br'));
+            tab.appendChild(prefixInput);
+
+            tab.appendChild(document.createElement('br'));
+
             const positions = ['DST', 'QB', 'K'];
 
             for (const position of positions) {
@@ -272,12 +310,15 @@
         }
 
         function getSubvertADownFormData() {
-            const data = {};
+            const data = {
+                raw: {},
+                prefix: document.getElementById(`${selectors.settingPanel.subvertADown}_prefix`).value
+            };
 
             const positions = ['QB', 'DST', 'K'];
 
             for (const position of positions) {
-                data[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
+                data.raw[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
             }
 
             return data;
