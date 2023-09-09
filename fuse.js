@@ -33,10 +33,10 @@
             const subvertADownValue = subvertADown.parsed[name];
             let info = [];
 
-            if(borisChenTier){
+            if (borisChenTier) {
                 info.push(`${borisChen.prefix || ''}${borisChenTier}`)
             }
-            if(subvertADownValue){
+            if (subvertADownValue) {
                 info.push(`${subvertADown.prefix || ''}${subvertADownValue}`)
             }
 
@@ -90,14 +90,12 @@
         settingsPanel.appendChild(borisChenTab);
         settingsPanel.appendChild(subvertADownTab);
 
-        settingsPanel.appendChild(document.createElement('br'));
-
         const saveBtn = makeButton('Save', () => {
             let state = getStoredData();
 
-            state.data.borisChen = {...state.data.borisChen, ...getBorischenFormData()};
+            state.data.borisChen = { ...state.data.borisChen, ...getBorischenFormData() };
             state.data.borisChen.parsed = parseBorischenRawData(state.data.borisChen.raw);
-            state.data.subvertADown = {...state.data.borisChen, ...getSubvertADownFormData()};
+            state.data.subvertADown = { ...state.data.borisChen, ...getSubvertADownFormData() };
             state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
             saveToLocalStorage(state);
             hideSettings();
@@ -131,50 +129,30 @@
         }
 
         function createBorisChenTab(savedData) {
-            const tab = document.createElement('div');
-            tab.id = selectors.settingPanel.borisChen;
-            tab.className = selectors.settingPanel.tabs;
-            tab.appendChild(document.createElement('br'));
-            const helpText = document.createElement('p');
+            const tab = makeTabElement(
+                selectors.settingPanel.borisChen,
+                "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
+            );
 
-            helpText.textContent = 'To get the tier data from www.borisChen.co for your league\'s point values and paste the raw tier info into the below text areas.';
-            tab.appendChild(helpText);
-            tab.appendChild(document.createElement('br'));
+            const prefixField = makeInputField(
+                'Prefix (optional)',
+                `${selectors.settingPanel.borisChen}_prefix`,
+                'Ex: BC',
+                savedData.prefix,
+            );
 
-            const prefixLabel = document.createElement('label');
-            prefixLabel.textContent = 'Prefix (optional)';
-
-            const prefixInput = document.createElement('input');
-            prefixInput.id = `${selectors.settingPanel.borisChen}_prefix`
-            prefixInput.placeholder = 'Ex: BC'
-            prefixInput.value = savedData.prefix || '';
-
-            tab.appendChild(prefixLabel);
-            tab.appendChild(document.createElement('br'));
-            tab.appendChild(prefixInput);
-
-            tab.appendChild(document.createElement('br'));
+            tab.appendChild(prefixField);
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
 
             for (const position of positions) {
-                const label = document.createElement('label');
+                const positionField = makeTextAreaField(
+                    position,
+                    `${selectors.settingPanel.borisChen}_${position}`,
+                    savedData.raw[position],
+                );
 
-                label.textContent = position;
-
-                const textarea = document.createElement('textarea');
-                textarea.style.width = '350px';
-
-                textarea.setAttribute('id', `${selectors.settingPanel.borisChen}_${position}`);
-                if (savedData.raw[position]) {
-                    textarea.value = savedData.raw[position];
-                }
-
-                tab.appendChild(label);
-                tab.appendChild(document.createElement('br'));
-
-                tab.appendChild(textarea);
-                tab.appendChild(document.createElement('br'));
+                tab.appendChild(positionField);
             }
 
             return tab;
@@ -262,50 +240,30 @@
         }
 
         function createSubvertADownTab(savedData) {
-            const tab = document.createElement('div');
-            tab.id = selectors.settingPanel.subvertADown;
-            tab.className = selectors.settingPanel.tabs;
-            tab.appendChild(document.createElement('br'));
-            const helpText = document.createElement('p');
+            const tab = makeTabElement(
+                selectors.settingPanel.subvertADown,
+                "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
+            );
 
-            helpText.textContent = 'Copy data from https://subvertadown.com and paste the raw tier info into the below text areas.';
-            tab.appendChild(helpText);
-            tab.appendChild(document.createElement('br'));
+            const prefixField = makeInputField(
+                'Prefix (optional)',
+                `${selectors.settingPanel.subvertADown}_prefix`,
+                'Ex: SD',
+                savedData.prefix,
+            );
 
-            const prefixLabel = document.createElement('label');
-            prefixLabel.textContent = 'Prefix (optional)';
-
-            const prefixInput = document.createElement('input');
-            prefixInput.id = `${selectors.settingPanel.subvertADown}_prefix`
-            prefixInput.placeholder = 'Ex: SD'
-            prefixInput.value = savedData.prefix || '';
-
-            tab.appendChild(prefixLabel);
-            tab.appendChild(document.createElement('br'));
-            tab.appendChild(prefixInput);
-
-            tab.appendChild(document.createElement('br'));
+            tab.appendChild(prefixField);
 
             const positions = ['DST', 'QB', 'K'];
 
             for (const position of positions) {
-                const label = document.createElement('label');
+                const positionField = makeTextAreaField(
+                    position,
+                    `${selectors.settingPanel.subvertADown}_${position}`,
+                    savedData.raw[position],
+                );
 
-                label.textContent = position;
-
-                const textarea = document.createElement('textarea');
-                textarea.style.width = '350px';
-
-                textarea.setAttribute('id', `${selectors.settingPanel.subvertADown}_${position}`);
-                if (savedData?.raw[position]) {
-                    textarea.value = savedData.raw[position];
-                }
-
-                tab.appendChild(label);
-                tab.appendChild(document.createElement('br'));
-
-                tab.appendChild(textarea);
-                tab.appendChild(document.createElement('br'));
+                tab.appendChild(positionField);
             }
 
             return tab;
@@ -348,7 +306,7 @@
                     if (!player) {
                         player = line.split('|')[0].trim();
 
-                        if(isDST){
+                        if (isDST) {
                             player = `${player} D/ST`;
                         }
                     } else {
@@ -471,6 +429,61 @@
         button.addEventListener('click', onClick);
 
         return button;
+    }
+
+    function makeTabElement(id, content) {
+        const tab = document.createElement('div');
+        tab.id = id;
+        tab.className = selectors.settingPanel.tabs;
+        tab.style.padding = '10px';
+
+        const helpText = document.createElement('p');
+        helpText.textContent = content;
+        helpText.style.marginBottom = '10px';
+
+        tab.appendChild(helpText);
+
+        return tab;
+    }
+
+    function makeLabelElement(text) {
+        const label = document.createElement('label');
+        label.textContent = text;
+        label.style.display = 'block';
+
+        return label;
+    }
+
+    function makeInputField(labelText, id, placeholder, value,) {
+        const field = document.createElement('div');
+        const label = makeLabelElement(labelText)
+
+        const input = document.createElement('input');
+        input.id = id;
+        input.placeholder = placeholder;
+        input.value = value || '';
+        input.style.marginBottom = '10px';
+
+        field.appendChild(label);
+        field.appendChild(input);
+
+        return field;
+    }
+
+    function makeTextAreaField(labelText, id, value = '', width = '350px') {
+        const field = document.createElement('div');
+        const label = makeLabelElement(labelText);
+
+        const textarea = document.createElement('textarea');
+        textarea.id = id;
+        textarea.value = value;
+        textarea.style.width = width;
+        textarea.style.marginBottom = '10px';
+
+        field.appendChild(label);
+        field.appendChild(textarea);
+
+        return field;
     }
 }
 )();
