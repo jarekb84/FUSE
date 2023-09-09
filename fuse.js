@@ -359,8 +359,7 @@
                 'Custom',
                 `${selectors.settingPanel.csv}_custom`,
                 savedData.raw['custom'],
-                '350px',
-                '200px'
+                { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
             );
 
             tab.appendChild(positionField);
@@ -546,7 +545,7 @@
         return field;
     }
 
-    function makeTextAreaField(labelText, id, value = '', width = '350px', height = '60px') {
+    function makeTextAreaField(labelText, id, value = '', { width = '350px', height = '60px', placeholder = '' } = {}) {
         const field = document.createElement('div');
         const label = makeLabelElement(labelText);
 
@@ -556,6 +555,7 @@
         textarea.style.width = width;
         textarea.style.height = height;
         textarea.style.marginBottom = '10px';
+        textarea.placeholder = placeholder;
 
         field.appendChild(label);
         field.appendChild(textarea);
