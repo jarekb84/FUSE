@@ -7,7 +7,8 @@
             name: 'fuseSettingsPanel',
             tabs: 'fuseSettingsPanel__tabs',
             borisChen: 'fuseSettingsPanel__tabs__borisChen',
-            subvertADown: 'fuseSettingsPanel__tabs__subvertADown'
+            subvertADown: 'fuseSettingsPanel__tabs__subvertADown',
+            csv: 'fuseSettingsPanel__tabs__csv'
         },
         localStorage: 'fuseStorage'
     }
@@ -24,20 +25,24 @@
         });
 
         const data = getStoredData().data;
-        const borisChen = data.borisChen;
-        const subvertADown = data.subvertADown;
 
         document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
             const name = playerNameEl.innerText;
-            const borisChenTier = borisChen.parsed[name];
-            const subvertADownValue = subvertADown.parsed[name];
+            const borisChenTier = data.borisChen.parsed[name];
+            const subvertADownValue = data.subvertADown.parsed[name];
+            const csvValue = data.csv.parsed[name];
+
             let info = [];
 
             if (borisChenTier) {
-                info.push(`${borisChen.prefix || ''}${borisChenTier}`)
+                info.push(`${data.borisChen.prefix || ''}${borisChenTier}`)
             }
             if (subvertADownValue) {
-                info.push(`${subvertADown.prefix || ''}${subvertADownValue}`)
+                info.push(`${data.subvertADown.prefix || ''}${subvertADownValue}`)
+            }
+
+            if (csvValue) {
+                info.push(`${data.csv.prefix || ''}${csvValue}`)
             }
 
             if (!info.length || !name) {
@@ -85,18 +90,30 @@
         const toggleSubvertADownTab = makeButton('SubvertADown', () => {
             toggleTabs(subvertADownTab.id)
         });
+
+        const csvTab = createCSVTab(savedData.csv);
+        const toggleCsv = makeButton('CSV', () => {
+            toggleTabs(csvTab.id)
+        });
         settingsPanel.appendChild(toggleBorisChenTab);
         settingsPanel.appendChild(toggleSubvertADownTab);
+        settingsPanel.appendChild(toggleCsv);
         settingsPanel.appendChild(borisChenTab);
         settingsPanel.appendChild(subvertADownTab);
+        settingsPanel.appendChild(csvTab);
 
         const saveBtn = makeButton('Save', () => {
             let state = getStoredData();
 
             state.data.borisChen = { ...state.data.borisChen, ...getBorischenFormData() };
             state.data.borisChen.parsed = parseBorischenRawData(state.data.borisChen.raw);
+
             state.data.subvertADown = { ...state.data.borisChen, ...getSubvertADownFormData() };
             state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
+
+            state.data.csv = { ...state.data.csv, ...getCSVFormData() };
+            state.data.csv.parsed = parseCSVFormData(state.data.csv.raw);
+
             saveToLocalStorage(state);
             hideSettings();
             updatePlayerInfo();
@@ -323,6 +340,61 @@
             }
         }
 
+        function createCSVTab(savedData) {
+            const tab = makeTabElement(
+                selectors.settingPanel.csv,
+                "Paste in your own comma separated value contents. First column should be the player's name."
+            );
+
+            const prefixField = makeInputField(
+                'Prefix (optional)',
+                `${selectors.settingPanel.csv}_prefix`,
+                'Ex: C',
+                savedData.prefix,
+            );
+
+            tab.appendChild(prefixField);
+
+            const positionField = makeTextAreaField(
+                'Custom',
+                `${selectors.settingPanel.csv}_custom`,
+                savedData.raw['custom'],
+                '350px',
+                '200px'
+            );
+
+            tab.appendChild(positionField);
+
+            return tab;
+        }
+
+        function getCSVFormData() {
+            const data = {
+                raw: {},
+                prefix: document.getElementById(`${selectors.settingPanel.csv}_prefix`).value
+            };
+
+            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.csv}_custom`).value;
+
+            return data;
+        }
+
+        function parseCSVFormData(rawData) {
+            const players = {};
+            const lines = rawData.custom.split('\n');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.length === 0) continue;
+
+                const [player, ...rest] = line.split(',');
+
+                players[player] = rest.join(',').trim();
+            }
+
+            return players;
+        }
+
         function hideAllTabs() {
             const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
 
@@ -357,6 +429,10 @@
                     parsed: {}
                 },
                 subvertADown: {
+                    raw: {},
+                    parsed: {}
+                },
+                csv: {
                     raw: {},
                     parsed: {}
                 }
@@ -470,7 +546,7 @@
         return field;
     }
 
-    function makeTextAreaField(labelText, id, value = '', width = '350px') {
+    function makeTextAreaField(labelText, id, value = '', width = '350px', height = '60px') {
         const field = document.createElement('div');
         const label = makeLabelElement(labelText);
 
@@ -478,6 +554,7 @@
         textarea.id = id;
         textarea.value = value;
         textarea.style.width = width;
+        textarea.style.height = height;
         textarea.style.marginBottom = '10px';
 
         field.appendChild(label);
