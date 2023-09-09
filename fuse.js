@@ -1,6 +1,5 @@
 (function () {
     const selectors = {
-        runUpdateBtn: 'fuseRunUpdate',
         playerInfo: 'fusePlayerInfo',
         showSettingsBtn: 'fuseShowSettings',
         settingPanel: {
@@ -13,9 +12,7 @@
         localStorage: 'fuseStorage'
     }
 
-    updatePlayerInfo();
-
-    makePageButton(selectors.runUpdateBtn, 'Update', 150, updatePlayerInfo);
+    runAutoUpdate();
 
     function updatePlayerInfo() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
@@ -561,6 +558,38 @@
         field.appendChild(textarea);
 
         return field;
+    }
+
+    function runAutoUpdate() {
+
+        if (window.fuse?.autoUpdateObserver) {
+            window.fuse.autoUpdateObserver.disconnect();
+        } else {
+            window.fuse = {};
+        }
+
+        // Update player info whenever the user causes the page content to update
+        // ie when applying position filters on the free agents page
+        const observer = new MutationObserver(function () {
+            // pause mutation checks while FUSE updates the page
+            // avoids an infinite loop of updates
+            observer.disconnect();
+
+            updatePlayerInfo();
+
+            // resume monitoring for mutations
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        window.fuse.autoUpdateObserver = observer;
     }
 }
 )();
