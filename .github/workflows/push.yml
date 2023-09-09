@@ -9,12 +9,12 @@ jobs:
   bump-version:
     name: 'Bump Version on main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: 'Checkout source code'
         uses: 'actions/checkout@v2'
-        with:
-          persist-credentials: false
       - name: Automated Version Bump
         uses: phips28/gh-action-bump-version@v10.0.1
         id: version-bump 
