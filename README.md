@@ -47,3 +47,5 @@ This is a bookmark where instead of a URL, it runs a bit of javascript to fetch 
 1. Go to https://jarekb84.github.io/FUSE
 2. Drag the FUSE link to your bookmarks bar
 3. Click the bookmarklet to run FUSE on a page
+
+![FUSE Install](/dist/assets/FUSE_install.gif)
