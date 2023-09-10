@@ -10,10 +10,12 @@ on:
 jobs:
   deployment:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/checkout@v2
-
+      - name: 'Checkout source code'
+        uses: 'actions/checkout@v2'
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
