@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUSE</title>
+    <style>
+        body {
+            width: 700px;
+            margin: auto;
+        }
+
+        a.bookmarklet {
+            font-size: 25px
+        }
+
+        a.bookmarklet.archive {
+            font-size: smaller;
+        }
+    </style>
+
+</head>
+
+<body>
+    <h1>FUSE: Fantasy User Stat Enhancer</h1>
+    <p>FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data.</p>
+
+    <img src="./assets/espn_team_overview.png" alt="ESPN Team Overview">
+    <h2>Install</h2>
+
+    <ol>
+        <li>Drag the link below to your bookmarks bar</li>
+        <li>Click the bookmarklet to run FUSE on a page</li>        
+    </ol>
+    <p>
+        <a class="bookmarklet" href="javascript: (async function() {
+            'use strict';
+        
+            try {
+                const response = await fetch('https://api.github.com/repos/jarekb84/FUSE/releases/latest');
+                const data = await response.json();    
+                    
+                let fuseAsset = data.assets.find(asset => asset.name === 'fuse.js');    
+            
+                if (fuseAsset) {        
+                    let script = document.createElement('SCRIPT');
+                    script.src = fuseAsset.browser_download_url;
+                    script.type = 'text/javascript';
+                    document.getElementsByTagName('head')[0].appendChild(script);
+                } else {
+                    Alert('fuse.js asset not found in the latest release.');
+                }
+            } catch (error) {
+               alert('Error fetching the latest release from GitHub: ' + error)
+            }
+        })();
+  ">FUSE Latest</a>
+    </p>
+
+    <p>
+        <a class="bookmarklet archive" href="javascript: (function() {
+            'use strict';
+            var script = document.createElement('SCRIPT');
+            script.src =
+              'https://github.com/jarekb84/FUSE/releases/download/v0.1.0/fuse.js';
+            script.type = 'text/javascript';  
+            document.getElementsByTagName('head')[0].appendChild(script);
+          })();
+    ">FUSE v0.1.0</a>
+    </p>
+</body>
+
+</html>
