@@ -10,6 +10,10 @@ Check out the example below
 
 ![ESPN Team Overview](/dist/assets/espn_team_overview.png)
 
+<video width="600" controls>
+    <source src="https://github.com/jarekb84/FUSE/tree/main/dist/assets/Fuse_Demo.mp4" type="video/mp4">
+</video>
+
 ## Copying data
 Copying data is done manually by copying and pasting the data from a given site. FUSE includes some logic to transform the pasted text into something which can be used to extend ESPN player info.
 
