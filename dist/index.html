@@ -24,20 +24,20 @@
 
 <body>
     <h1>FUSE: Fantasy User Stat Enhancer</h1>
-    <p>FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data.</p>
-    
+    <p>FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations.</p>
+    <p>This is currently in beta. Submit bugs, issues, or feature requests to the <a
+            href="https://github.com/jarekb84/FUSE">github repo</a>.</p>
     <div>
         <video width="700" controls>
             <source src="./assets/Fuse_Demo.mp4" type="video/mp4">
         </video>
     </div>
-    
-    
+
     <h2>Install</h2>
 
     <ol>
         <li>Drag the link below to your bookmarks bar</li>
-        <li>Click the bookmarklet to run FUSE on a page</li>        
+        <li>Click the bookmarklet to run FUSE on a page</li>
     </ol>
     <p>
         <a class="bookmarklet" href="javascript: (async function() {
@@ -60,20 +60,48 @@
             } catch (error) {
                alert('Error fetching the latest release from GitHub: ' + error)
             }
-        })();
-  ">FUSE Latest</a>
+        })();">FUSE Latest</a>
     </p>
-
     <p>
-        <a class="bookmarklet archive" href="javascript: (function() {
-            'use strict';
-            var script = document.createElement('SCRIPT');
-            script.src =
-              'https://github.com/jarekb84/FUSE/releases/download/v0.1.0/fuse.js';
-            script.type = 'text/javascript';  
-            document.getElementsByTagName('head')[0].appendChild(script);
-          })();
-    ">FUSE v0.1.0</a>
+        Archive
+        <ul>
+            <li>
+                <a class="bookmarklet archive" href="javascript: (function() {
+                    'use strict';
+                    var script = document.createElement('SCRIPT');
+                    script.src ='https://github.com/jarekb84/FUSE/releases/download/v0.4.1/fuse.js';
+                    script.type = 'text/javascript';  
+                    document.getElementsByTagName('head')[0].appendChild(script);
+                    })();">FUSE v0.4.1</a>
+            </li>
+            <li>
+                <a class="bookmarklet archive" href="javascript: (function() {
+                'use strict';
+                var script = document.createElement('SCRIPT');
+                script.src ='https://github.com/jarekb84/FUSE/releases/download/v0.3.0/fuse.js';
+                script.type = 'text/javascript';  
+                document.getElementsByTagName('head')[0].appendChild(script);
+                })();">FUSE v0.3.0</a>
+            </li>
+            <li>
+                <a class="bookmarklet archive" href="javascript: (function() {
+                    'use strict';
+                    var script = document.createElement('SCRIPT');
+                    script.src ='https://github.com/jarekb84/FUSE/releases/download/v0.2.2/fuse.js';
+                    script.type = 'text/javascript';  
+                    document.getElementsByTagName('head')[0].appendChild(script);
+                })();">FUSE v0.2.2</a>
+            </li>
+            <li>
+                <a class="bookmarklet archive" href="javascript: (function() {
+                    'use strict';
+                    var script = document.createElement('SCRIPT');
+                    script.src ='https://github.com/jarekb84/FUSE/releases/download/v0.1.0/fuse.js';
+                    script.type = 'text/javascript';  
+                    document.getElementsByTagName('head')[0].appendChild(script);
+                })();">FUSE v0.1.0</a>
+            </li>
+        </ul>
     </p>
 </body>
 

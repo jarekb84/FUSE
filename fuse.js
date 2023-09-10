@@ -126,7 +126,7 @@
             const settingsPanel = document.createElement('div');
 
             settingsPanel.setAttribute('id', selectors.settingPanel.name);
-            settingsPanel.style.position = 'absolute';
+            settingsPanel.style.position = 'fixed';
             settingsPanel.style.top = '200px';
             settingsPanel.style.right = '0';
             settingsPanel.style.backgroundColor = '#f9f9f9';
@@ -481,7 +481,7 @@
         const button = makeButton(text, onClick);
         button.id = id;
 
-        button.style.position = 'absolute';
+        button.style.position = 'fixed';
         button.style.top = `${offset}px`;
         button.style.right = 0;
         button.style.color = 'green';
