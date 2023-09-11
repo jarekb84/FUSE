@@ -23,13 +23,51 @@
 
         const data = getStoredData().data;
 
-        document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
-            const name = playerNameEl.innerText;
+        if (window.location.host === 'fantasy.espn.com') {
+            updateESPNPlayerInfo();
+        }
+
+        if (window.location.host === 'football.fantasysports.yahoo.com') {
+            updateYahooPlayerInfo();
+        }
+
+        function updateESPNPlayerInfo() {
+            document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
+                const name = playerNameEl.innerText;
+                const info = constructPlayerInfo(name);
+                const playerBioElem = playerNameEl.closest('.player-column__bio');
+
+                if (playerBioElem) {
+                    const playerPositionElem = playerBioElem.querySelector('.player-column__position');
+
+                    if (playerPositionElem) {
+                        const span = createPlayerInfoElement(info);
+
+                        playerPositionElem.insertBefore(span, playerPositionElem.firstChild);
+                    }
+                }
+            });
+        }
+
+        function updateYahooPlayerInfo() {
+            document.querySelectorAll('.ysf-player-name .name').forEach(playerNameEl => {
+                const name = playerNameEl.innerText;
+                const info = constructPlayerInfo(name);
+                const span = createPlayerInfoElement(info, { marginLeft: '2px', fontWeight: '600' });
+                playerNameEl.parentNode.insertBefore(span, playerNameEl.nextSibling);
+            });
+        }
+
+        function constructPlayerInfo(name) {
+            let info = [];
+
+            if (!name) {
+                return '';
+            }
+
             const borisChenTier = data.borisChen.parsed[name];
             const subvertADownValue = data.subvertADown.parsed[name];
             const csvValue = data.csv.parsed[name];
-
-            let info = [];
 
             if (borisChenTier) {
                 info.push(`${data.borisChen.prefix || ''}${borisChenTier}`)
@@ -42,27 +80,20 @@
                 info.push(`${data.csv.prefix || ''}${csvValue}`)
             }
 
-            if (!info.length || !name) {
-                return
-            }
+            return info.join('/');
+        }
 
-            const playerBioElem = playerNameEl.closest('.player-column__bio');
+        function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
+            const span = document.createElement('span');
+            span.className = selectors.playerInfo;
+            span.style.marginRight = marginRight;
+            span.style.marginLeft = marginLeft;
+            span.style.fontWeight = fontWeight;
+            span.textContent = info;
 
-            if (playerBioElem) {
-                const playerPositionElem = playerBioElem.querySelector('.player-column__position');
+            return span
+        }
 
-                if (playerPositionElem) {
-                    const span = document.createElement('span');
-
-                    span.className = selectors.playerInfo;
-                    span.style.marginRight = '2px';
-                    span.style.fontWeight = '900';
-                    span.textContent = `${info.join('/')}`;
-
-                    playerPositionElem.insertBefore(span, playerPositionElem.firstChild);
-                }
-            }
-        });
     }
 
     makePageButton(selectors.showSettingsBtn, '⚙', 175, editSettings);
