@@ -23,13 +23,53 @@
 
         const data = getStoredData().data;
 
-        document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
-            const name = playerNameEl.innerText;
-            const borisChenTier = data.borisChen.parsed[name];
-            const subvertADownValue = data.subvertADown.parsed[name];
-            const csvValue = data.csv.parsed[name];
+        if (window.location.host === 'fantasy.espn.com') {
+            updateESPNPlayerInfo();
+        }
 
+        if (window.location.host === 'football.fantasysports.yahoo.com') {
+            updateYahooPlayerInfo();
+        }
+
+        function updateESPNPlayerInfo() {
+            document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
+                const name = playerNameEl.innerText;
+                const info = constructPlayerInfo(name);
+                const playerBioElem = playerNameEl.closest('.player-column__bio');
+
+                if (playerBioElem) {
+                    const playerPositionElem = playerBioElem.querySelector('.player-column__position');
+
+                    if (playerPositionElem) {
+                        const span = createPlayerInfoElement(info);
+
+                        playerPositionElem.insertBefore(span, playerPositionElem.firstChild);
+                    }
+                }
+            });
+        }
+
+        function updateYahooPlayerInfo() {
+            document.querySelectorAll('.ysf-player-name a').forEach(playerNameEl => {
+                const name = playerNameEl.innerText;
+                const info = constructPlayerInfo(name);
+                const span = createPlayerInfoElement(info, { marginLeft: '2px', fontWeight: '600' });
+                playerNameEl.parentNode.insertBefore(span, playerNameEl.nextSibling);
+            });
+        }
+
+        function constructPlayerInfo(name) {
             let info = [];
+
+            if (!name) {
+                return '';
+            }
+
+            const playerName = name.replace(' D/ST', '')
+
+            const borisChenTier = data.borisChen.parsed[playerName];
+            const subvertADownValue = data.subvertADown.parsed[playerName];
+            const csvValue = data.csv.parsed[playerName];
 
             if (borisChenTier) {
                 info.push(`${data.borisChen.prefix || ''}${borisChenTier}`)
@@ -42,27 +82,19 @@
                 info.push(`${data.csv.prefix || ''}${csvValue}`)
             }
 
-            if (!info.length || !name) {
-                return
-            }
+            return info.join('/');
+        }
 
-            const playerBioElem = playerNameEl.closest('.player-column__bio');
+        function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
+            const span = document.createElement('span');
+            span.className = selectors.playerInfo;
+            span.style.marginRight = marginRight;
+            span.style.marginLeft = marginLeft;
+            span.style.fontWeight = fontWeight;
+            span.textContent = info;
 
-            if (playerBioElem) {
-                const playerPositionElem = playerBioElem.querySelector('.player-column__position');
-
-                if (playerPositionElem) {
-                    const span = document.createElement('span');
-
-                    span.className = selectors.playerInfo;
-                    span.style.marginRight = '2px';
-                    span.style.fontWeight = '900';
-                    span.textContent = `${info.join('/')}`;
-
-                    playerPositionElem.insertBefore(span, playerPositionElem.firstChild);
-                }
-            }
-        });
+            return span;
+        }
     }
 
     makePageButton(selectors.showSettingsBtn, '⚙', 175, editSettings);
@@ -194,7 +226,7 @@
             parseTierInfo(rawTierData.RB, players);
             parseTierInfo(rawTierData.WR, players);
             parseTierInfo(rawTierData.TE, players);
-            parseTierInfo(removeCityFromDST(rawTierData.DST), players);
+            parseTierInfo(splitDSTIntoTeamAndCity(rawTierData.DST), players);
             parseTierInfo(rawTierData.K, players);
 
             return players;
@@ -212,15 +244,14 @@
                     const players = row[1];
 
                     players?.split(', ').forEach((player, index) => {
-                        playerDictionary[player] = `${tier}.${index + 1}`;
+                        addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
                     });
                 });
-
 
                 return playerDictionary;
             }
 
-            function removeCityFromDST(raw) {
+            function splitDSTIntoTeamAndCity(raw) {
                 if (!raw) {
                     return;
                 }
@@ -233,17 +264,24 @@
                     const tier = row[0];
                     const teams = row[1];
                     let rowOutput = `${tier}: `;
-                    let isFirst = true;
 
-                    teams?.split(', ').forEach(team => {
-                        const name = team.split(' ').pop();
+                    teams?.split(', ').forEach((team, index) => {
+                        const parts = team.split(' ');
 
-                        if (isFirst) {
-                            rowOutput += `${name} D/ST`;
-                            isFirst = false;
-                        } else {
-                            rowOutput += `, ${name} D/ST`;
+                        // Team name is the last word
+                        const teamName = parts.pop();
+
+                        // Everything else is considered as the city
+                        const city = parts.join(' ');
+
+                        if (index !== 0) {
+                            rowOutput += `, `;
                         }
+
+                        rowOutput += `${teamName}`;
+
+                        // add city back in as a separate entry for Yahoo
+                        rowOutput += `, ${city}`;
                     });
 
                     output.push(rowOutput);
@@ -318,20 +356,19 @@
                     }
 
                     if (!player) {
+                        // first line is player, next line is the value
                         player = line.split('|')[0].trim();
 
                         if (isDST) {
-                            player = `${player} D/ST`;
+                            player = `${player}`;
                         }
                     } else {
-                        value = line.trim();
-                        players[player] = value;
+                        addPlayerInfoToDictionary(player, line.trim(), players);
 
                         // reset for next iteration
                         player = ''
                     }
                 })
-
 
                 return players;
             }
@@ -385,10 +422,26 @@
 
                 const [player, ...rest] = line.split(',');
 
-                players[player] = rest.join(',').trim();
+                addPlayerInfoToDictionary(player, rest.join(',').trim(), players);
             }
 
             return players;
+        }
+
+        function addPlayerInfoToDictionary(player, info, playerDictionary) {
+            playerDictionary[player] = info;
+
+            const [first, ...rest] = player.split(' ');
+
+            // Some sites truncate player names on some, but not all pages
+            // ie Christian McCaffrey is sometimes shown as C. McCaffrey
+            // storing both the long and short name allows the playerDictionary lookup
+            // to work on all pages
+
+            const shortName = `${first[0]}. ${rest.join(' ')}`
+            playerDictionary[shortName] = info;
+
+            return playerDictionary
         }
 
         function hideAllTabs() {
