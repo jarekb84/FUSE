@@ -20,7 +20,7 @@ Currently FUSE has the following capabilities
 - Custom CSV data
 
 FUSE should work on most pages where a player name is shown
-| ESPN             | Yahoo            | Yahoo             |
+| ESPN             | Yahoo            | NFL.com           |
 |------------------|------------------|------------------ |
 | My Team          | Roster           | My Team           |
 | Opposing Teams   | Player Updates   | Players Add       |
