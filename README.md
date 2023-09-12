@@ -14,6 +14,7 @@ https://github.com/jarekb84/FUSE/assets/667983/766e9f9a-fc4a-4e20-9eda-1192c0072
 Currently FUSE has the following capabilities
 
 - Borischen tiers
+  - Primary position and FLEX tiers separated by `|`
 - SubvertADown streaming values
   - DST not supported on Yahoo since it uses city name
 - Custom CSV data
