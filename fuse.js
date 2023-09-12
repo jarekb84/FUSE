@@ -68,7 +68,6 @@
                 } else {
                     playerNameEl.after(fuseInfo);
                 }
-
             }
         }
 
