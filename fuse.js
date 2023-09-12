@@ -31,31 +31,45 @@
             updateYahooPlayerInfo();
         }
 
+        if (window.location.host === 'fantasy.nfl.com') {
+            updateNFLPlayerInfo();
+        }
+
         function updateESPNPlayerInfo() {
             document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
-                const name = playerNameEl.innerText;
-                const info = constructPlayerInfo(name);
-                const playerBioElem = playerNameEl.closest('.player-column__bio');
-
-                if (playerBioElem) {
-                    const playerPositionElem = playerBioElem.querySelector('.player-column__position');
-
-                    if (playerPositionElem) {
-                        const span = createPlayerInfoElement(info);
-
-                        playerPositionElem.insertBefore(span, playerPositionElem.firstChild);
-                    }
-                }
+                insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
             });
         }
 
         function updateYahooPlayerInfo() {
             document.querySelectorAll('.ysf-player-name a').forEach(playerNameEl => {
-                const name = playerNameEl.innerText;
-                const info = constructPlayerInfo(name);
-                const span = createPlayerInfoElement(info, { marginLeft: '2px', fontWeight: '600' });
-                playerNameEl.parentNode.insertBefore(span, playerNameEl.nextSibling);
+                insertFUSEPlayerInfo(playerNameEl, 'td', '.ysf-player-detail', { fontWeight: '700' });
             });
+        }
+
+        function updateNFLPlayerInfo() {
+            document.querySelectorAll('.playerName').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, '.playerNameAndInfo', 'em', { fontWeight: '900' });
+            });
+        }
+
+        function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles) {
+            const name = playerNameEl.innerText;
+            const info = constructPlayerInfo(name);
+
+            if (info) {
+                const fuseInfo = createPlayerInfoElement(info, styles);
+
+                const parentElement = playerNameEl.closest(parentSelector);
+                const rowAfterPlayerName = parentElement?.querySelector(rowAfterPlayerNameSelector);
+
+                if (rowAfterPlayerName) {
+                    rowAfterPlayerName.insertBefore(fuseInfo, rowAfterPlayerName.firstChild);
+                } else {
+                    playerNameEl.after(fuseInfo);
+                }
+
+            }
         }
 
         function constructPlayerInfo(name) {
@@ -165,7 +179,7 @@
             settingsPanel.style.width = '400px';
             settingsPanel.style.padding = '10px';
             settingsPanel.style.zIndex = '1000';
-
+            settingsPanel.style.textAlign = 'left';
 
             settingsPanel.style.padding = '15px';
             settingsPanel.style.border = '1px solid #ccc';
@@ -226,7 +240,7 @@
             parseTierInfo(rawTierData.RB, players);
             parseTierInfo(rawTierData.WR, players);
             parseTierInfo(rawTierData.TE, players);
-            parseTierInfo(splitDSTIntoTeamAndCity(rawTierData.DST), players);
+            parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
             parseTierInfo(rawTierData.K, players);
 
             return players;
@@ -251,7 +265,7 @@
                 return playerDictionary;
             }
 
-            function splitDSTIntoTeamAndCity(raw) {
+            function splitUpDSTByPlatform(raw) {
                 if (!raw) {
                     return;
                 }
@@ -282,6 +296,9 @@
 
                         // add city back in as a separate entry for Yahoo
                         rowOutput += `, ${city}`;
+
+                        // add full city and team name back in as a separate entry for NFL.com
+                        rowOutput += `, ${team}`;
                     });
 
                     output.push(rowOutput);
@@ -539,6 +556,9 @@
         button.style.right = 0;
         button.style.color = 'green';
         button.style['z-index'] = '10000';
+        button.style.fontSize = '16px';
+        button.style.padding = '1px 6px';
+        button.style.marginRight = '0';
 
         const body = document.getElementsByTagName('body')[0];
 
@@ -551,6 +571,12 @@
         const button = document.createElement('button');
 
         button.innerHTML = text;
+        button.style.padding = '5px';
+        button.style.marginRight = '5px';
+        button.style.backgroundColor = 'lightgray';
+        button.style.border = '1px solid black';
+        button.style.borderRadius = '5px';
+        button.style.cursor = 'pointer';
         button.addEventListener('click', onClick);
 
         return button;
@@ -588,6 +614,9 @@
         input.placeholder = placeholder;
         input.value = value || '';
         input.style.marginBottom = '10px';
+        input.style.backgroundColor = 'white';
+        input.style.border = '1px solid black';
+        input.style.padding = '3px';
 
         field.appendChild(label);
         field.appendChild(input);
@@ -605,6 +634,9 @@
         textarea.style.width = width;
         textarea.style.height = height;
         textarea.style.marginBottom = '10px';
+        textarea.style.backgroundColor = 'white';
+        textarea.style.border = '1px solid black';
+        textarea.style.padding = '3px';
         textarea.placeholder = placeholder;
 
         field.appendChild(label);

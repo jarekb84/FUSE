@@ -2,16 +2,16 @@
 
 FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations. [Install instructions below ](#install-instructions)
 
-| ESPN             | Yahoo             |
-|------------------|------------------ |
-| ![ESPN Team Overview](/dist/assets/espn_team_overview.png) | ![Yahoo Roster Overview](/dist/assets/yahoo_roster_overview.png)           |
+| ESPN             | Yahoo             | NFL.com           |
+|------------------|------------------ |------------------ |
+| ![ESPN Team Overview](/dist/assets/espn_team_overview.png) | ![Yahoo Roster Overview](/dist/assets/yahoo_roster_overview.png) | ![NFL.com My Team Overview](/dist/assets/nfl_my_team_overview.png) |
 
 
 https://github.com/jarekb84/FUSE/assets/667983/766e9f9a-fc4a-4e20-9eda-1192c00729e4
 
 
 ## Features
-Currently ESPN and Yahoo player names are supported with the following capabilities
+Currently FUSE has the following capabilities
 
 - Borischen tiers
 - SubvertADown streaming values
@@ -19,16 +19,16 @@ Currently ESPN and Yahoo player names are supported with the following capabilit
 - Custom CSV data
 
 FUSE should work on most pages where a player name is shown
-| ESPN             | Yahoo             |
-|------------------|------------------ |
-| My Team          | Roster           |
-| Opposing Teams   | Player Updates   |
-| Free Agents      | Watch List       |
-| Scoring Leaders  | Player List      |
-| FantasyCast      | Matchups         |
-| Box Scores       | Research Overview|
-|                  | Injury Reports   |
-|                  | Propose Trade    |
+| ESPN             | Yahoo            | Yahoo             |
+|------------------|------------------|------------------ |
+| My Team          | Roster           | My Team           |
+| Opposing Teams   | Player Updates   | Players Add       |
+| Free Agents      | Watch List       | Other Teams       |
+| Scoring Leaders  | Player List      | Trade Players     |
+| FantasyCast      | Matchups         | Game Center       |
+| Box Scores       | Research Overview|                   |
+|                  | Injury Reports   |                   |
+|                  | Propose Trade    |                   |
 
 ## Importing Data
 Data is imported manually by copying and pasting the content from a given site. FUSE includes some logic to transform the pasted text into something which can be used to extend player info.
