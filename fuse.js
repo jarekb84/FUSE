@@ -202,7 +202,7 @@
 
             tab.appendChild(prefixField);
 
-            const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
+            const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
 
             for (const position of positions) {
                 const positionField = makeTextAreaField(
@@ -223,7 +223,7 @@
                 prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value
             };
 
-            const positions = ['QB', 'RB', 'WR', 'TE', 'DST', 'K'];
+            const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
 
             for (const position of positions) {
                 data.raw[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
@@ -239,6 +239,7 @@
             parseTierInfo(rawTierData.RB, players);
             parseTierInfo(rawTierData.WR, players);
             parseTierInfo(rawTierData.TE, players);
+            parseTierInfo(rawTierData.FLEX, players);
             parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
             parseTierInfo(rawTierData.K, players);
 
@@ -444,8 +445,16 @@
             return players;
         }
 
-        function addPlayerInfoToDictionary(player, info, playerDictionary) {
-            playerDictionary[player] = info;
+        function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
+            let infoToSave = playerDictionary[player]
+
+            if (infoToSave) {
+                infoToSave += `|${newInfo}`;
+            } else{
+                infoToSave = newInfo;
+            }
+
+            playerDictionary[player] = infoToSave;
 
             const [first, ...rest] = player.split(' ');
 
@@ -455,7 +464,7 @@
             // to work on all pages
 
             const shortName = `${first[0]}. ${rest.join(' ')}`
-            playerDictionary[shortName] = info;
+            playerDictionary[shortName] = infoToSave;
 
             return playerDictionary
         }
@@ -513,7 +522,6 @@
 
     function saveToLocalStorage(data) {
         localStorage.setItem(selectors.localStorage, JSON.stringify(data));
-        console.log(data)
     }
 
     function isObject(item) {
