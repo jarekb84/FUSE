@@ -2,9 +2,9 @@
 
 FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations. [Install instructions below ](#install-instructions)
 
-| ESPN             | Yahoo             | NFL.com           |
-|------------------|------------------ |------------------ |
-| ![ESPN Team Overview](/dist/assets/espn_team_overview.png) | ![Yahoo Roster Overview](/dist/assets/yahoo_roster_overview.png) | ![NFL.com My Team Overview](/dist/assets/nfl_my_team_overview.png) |
+| ESPN             | Yahoo             | NFL.com           | Sleeper           |
+|------------------|------------------ |------------------ |------------------ |
+| ![ESPN Team Overview](/dist/assets/espn_team_overview.png) | ![Yahoo Roster Overview](/dist/assets/yahoo_roster_overview.png) | ![NFL.com My Team Overview](/dist/assets/nfl_my_team_overview.png) | ![Sleeper Team Overview](/dist/assets/sleeper_team_overview.png) |
 
 
 https://github.com/jarekb84/FUSE/assets/667983/766e9f9a-fc4a-4e20-9eda-1192c00729e4
@@ -15,21 +15,22 @@ Currently FUSE has the following capabilities
 
 - Borischen tiers
   - Primary position and FLEX tiers separated by `|`
+  - DST not supported on Sleeper since it uses an assortment of city name variations
 - SubvertADown streaming values
-  - DST not supported on Yahoo since it uses city name
+  - DST not supported on Yahoo and Sleeper since they use city name
 - Custom CSV data
 
 FUSE should work on most pages where a player name is shown
-| ESPN             | Yahoo            | NFL.com           |
-|------------------|------------------|------------------ |
-| My Team          | Roster           | My Team           |
-| Opposing Teams   | Player Updates   | Players Add       |
-| Free Agents      | Watch List       | Other Teams       |
-| Scoring Leaders  | Player List      | Trade Players     |
-| FantasyCast      | Matchups         | Game Center       |
-| Box Scores       | Research Overview|                   |
-|                  | Injury Reports   |                   |
-|                  | Propose Trade    |                   |
+| ESPN             | Yahoo            | NFL.com           | Sleeper           |
+|------------------|------------------|------------------ |------------------ |
+| My Team          | Roster           | My Team           | Matchup           |
+| Opposing Teams   | Player Updates   | Players Add       | Team              |
+| Free Agents      | Watch List       | Other Teams       | Players           |
+| Scoring Leaders  | Player List      | Trade Players     | Trend             |
+| FantasyCast      | Matchups         | Game Center       | Scores            |
+| Box Scores       | Research Overview|                   |                   |
+|                  | Injury Reports   |                   |                   |
+|                  | Propose Trade    |                   |                   |
 
 ## Importing Data
 Data is imported manually by copying and pasting the content from a given site. FUSE includes some logic to transform the pasted text into something which can be used to extend player info.

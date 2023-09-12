@@ -35,6 +35,10 @@
             updateNFLPlayerInfo();
         }
 
+        if (window.location.host === 'sleeper.com') {
+            updateSleeperPlayerInfo();
+        }
+
         function updateESPNPlayerInfo() {
             document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
                 insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
@@ -50,6 +54,33 @@
         function updateNFLPlayerInfo() {
             document.querySelectorAll('.playerName').forEach(playerNameEl => {
                 insertFUSEPlayerInfo(playerNameEl, '.playerNameAndInfo', 'em', { fontWeight: '900' });
+            });
+        }
+
+        function updateSleeperPlayerInfo() {
+            // matchup page
+            document.querySelectorAll('.matchup-player-item .player-name > div:first-child').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, '.player-name', '.player-pos', { fontWeight: '900' });
+            });
+
+            // team page
+            document.querySelectorAll('.team-roster-item .player-name').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, '.cell-player-meta', '.game-schedule-live-description', { fontWeight: '900' });
+            });
+
+            // players page
+            document.querySelectorAll('.player-meta-container .name').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, '.name-container', '.position', { fontWeight: '900' });
+            });
+
+            // trend page
+            document.querySelectorAll('.trending-list-item .name').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, '.player-details', '.position', { fontWeight: '900' });
+            });
+
+            // scores page
+            document.querySelectorAll('.scores-content .player-meta .name').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, '.player-meta', '.position', { fontWeight: '900' });
             });
         }
 
@@ -450,7 +481,7 @@
 
             if (infoToSave) {
                 infoToSave += `|${newInfo}`;
-            } else{
+            } else {
                 infoToSave = newInfo;
             }
 
@@ -465,6 +496,10 @@
 
             const shortName = `${first[0]}. ${rest.join(' ')}`
             playerDictionary[shortName] = infoToSave;
+
+            // Sleeper shows Christian McCaffrey as C McCaffrey
+            const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
+            playerDictionary[shortNameWithoutPeriod] = infoToSave;
 
             return playerDictionary
         }
