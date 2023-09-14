@@ -17,5 +17,12 @@
   "bugs": {
     "url": "https://github.com/jarekb84/FUSE/issues"
   },
-  "homepage": "https://github.com/jarekb84/FUSE#readme"
+  "homepage": "https://github.com/jarekb84/FUSE#readme",
+  "scripts": {    
+    "preprelease": "node prepRelease.js"
+  },
+  "devDependencies": {
+    "shx": "^0.3.4",
+    "terser": "^5.19.4"
+  }
 }
