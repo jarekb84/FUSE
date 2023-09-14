@@ -39,6 +39,10 @@
             updateSleeperPlayerInfo();
         }
 
+        if (window.location.host.includes('football.cbssports.com')) {
+            updateCBSPlayerInfo();
+        }
+
         function updateESPNPlayerInfo() {
             document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
                 insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
@@ -81,6 +85,12 @@
             // scores page
             document.querySelectorAll('.scores-content .player-meta .name').forEach(playerNameEl => {
                 insertFUSEPlayerInfo(playerNameEl, '.player-meta', '.position', { fontWeight: '900' });
+            });
+        }
+
+        function updateCBSPlayerInfo() {
+            document.querySelectorAll('.playerLink').forEach(playerNameEl => {
+                insertFUSEPlayerInfo(playerNameEl, 'td', 'playerPositionAndTeam', { fontWeight: '900', marginLeft: '2px' });
             });
         }
 
