@@ -38,8 +38,6 @@ Data is imported manually by copying and pasting the content from a given site. 
 ### Borischen
 Go to the position page in [borischen.co](http://www.borischen.co/) that's relevant for your league's scoring rules and copy the data over to FUSE.
 
-You may need to tweak some player names if they differ from what's shown in your fantasy platform, otherwise FUSE info won't be added. For example Borischen shows `Patrick Mahomes II` while ESPN omits the `II`.
-
 ![Borischen copying data example](/dist/assets/borischen_copying.png)
 
 ### SubvertADown
