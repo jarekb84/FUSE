@@ -1,4 +1,5 @@
 (function () {
+    const version = 'VERSION_PLACEHOLDER';
     const selectors = {
         playerInfo: 'fusePlayerInfo',
         showSettingsBtn: 'fuseShowSettings',
@@ -204,10 +205,21 @@
 
         settingsPanel.appendChild(saveBtn);
         settingsPanel.appendChild(makeButton('Hide', hideSettings));
+        settingsPanel.appendChild(createVersionElement());
 
         document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
         toggleTabs(borisChenTab.id);
 
+        function createVersionElement() {
+            const versionSpan = document.createElement('span');
+            versionSpan.textContent = `v${version}`;
+            versionSpan.style.position = 'absolute';
+            versionSpan.style.bottom = '0';
+            versionSpan.style.right = '0';;
+            versionSpan.style.fontSize = 'smaller';
+
+            return versionSpan;
+        }
         function createMainSettingsPanel() {
             const settingsPanel = document.createElement('div');
 
