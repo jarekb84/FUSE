@@ -16,7 +16,7 @@
     runAutoUpdate();
 
     const DSTNames = getDSTNames();
-    
+
     function getDSTNames() {
         const teamNames = {
             '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
@@ -58,10 +58,8 @@
         Object.values(teamNames).forEach(teamNamePermutations => {
             teamNamePermutations.forEach(teamName => {
                 dynamicTeamNames[teamName] = teamNamePermutations;
-            })    
+            })
         });
-
-        console.log(dynamicTeamNames);
 
         return dynamicTeamNames;
     }
@@ -508,7 +506,7 @@
                 `${selectors.settingPanel.customData}_delimiter`,
                 ['Tab', 'Space', 'Comma'],
                 savedData.delimiter
-            );            
+            );
             dataSettings.appendChild(delimiterField);
 
             const playerColumnField = createDropdownField(
