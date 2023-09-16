@@ -15,6 +15,57 @@
 
     runAutoUpdate();
 
+    const DSTNames = getDSTNames();
+    
+    function getDSTNames() {
+        const teamNames = {
+            '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
+            'Bears': ['Bears', 'Chicago', 'Chicago Bears', 'Chicago. Bears', 'CHI'],
+            'Bengals': ['Bengals', 'Cincinnati', 'Cincinnati Bengals', 'Cincinnati. Bengals', 'CIN'],
+            'Bills': ['Bills', 'Buffalo', 'Buffalo Bills', 'Buffalo. Bills', 'BUF'],
+            'Broncos': ['Broncos', 'Denver', 'Denver Broncos', 'Denver. Broncos', 'DEN'],
+            'Browns': ['Browns', 'Cleveland', 'Cleveland Browns', 'Cleveland. Browns', 'CLE'],
+            'Buccaneers': ['Buccaneers', 'Tampa Bay', 'Tampa Bay Buccaneers', 'Tampa Bay. Buccaneers', 'TB'],
+            'Cardinals': ['Cardinals', 'Arizona', 'Arizona Cardinals', 'Arizona. Cardinals', 'ARI'],
+            'Chargers': ['Chargers', 'Los Angeles', 'Los Angeles Chargers', 'Los Angeles. Chargers', 'LAC'],
+            'Chiefs': ['Chiefs', 'Kansas City', 'Kansas City Chiefs', 'Kansas City. Chiefs', 'KC'],
+            'Colts': ['Colts', 'Indianapolis', 'Indianapolis Colts', 'Indianapolis. Colts', 'IND'],
+            'Commanders': ['Commanders', 'Washington', 'Washington Commanders', 'Washington. Commanders', 'WAS'],
+            'Cowboys': ['Cowboys', 'Dallas', 'Dallas Cowboys', 'Dallas. Cowboys', 'DAL'],
+            'Dolphins': ['Dolphins', 'Miami', 'Miami Dolphins', 'Miami. Dolphins', 'MIA'],
+            'Eagles': ['Eagles', 'Philadelphia', 'Philadelphia Eagles', 'Philadelphia. Eagles', 'PHI'],
+            'Falcons': ['Falcons', 'Atlanta', 'Atlanta Falcons', 'Atlanta. Falcons', 'ATL'],
+            'Giants': ['Giants', 'New York', 'New York Giants', 'New York. Giants', 'NYG'],
+            'Jaguars': ['Jaguars', 'Jacksonville', 'Jacksonville Jaguars', 'Jacksonville. Jaguars', 'JAX'],
+            'Jets': ['Jets', 'New York', 'New York Jets', 'New York. Jets', 'NYJ'],
+            'Lions': ['Lions', 'Detroit', 'Detroit Lions', 'Detroit. Lions', 'DET'],
+            'Packers': ['Packers', 'Green Bay', 'Green Bay Packers', 'Green Bay. Packers', 'GB'],
+            'Panthers': ['Panthers', 'Carolina', 'Carolina Panthers', 'Carolina. Panthers', 'CAR'],
+            'Patriots': ['Patriots', 'New England', 'New England Patriots', 'New England. Patriots', 'NE'],
+            'Raiders': ['Raiders', 'Las Vegas', 'Las Vegas Raiders', 'Las Vegas. Raiders', 'LV'],
+            'Rams': ['Rams', 'Los Angeles', 'Los Angeles Rams', 'Los Angeles. Rams', 'LA'],
+            'Ravens': ['Ravens', 'Baltimore', 'Baltimore Ravens', 'Baltimore. Ravens', 'BAL'],
+            'Saints': ['Saints', 'New Orleans', 'New Orleans Saints', 'New Orleans. Saints', 'NO'],
+            'Seahawks': ['Seahawks', 'Seattle', 'Seattle Seahawks', 'Seattle. Seahawks', 'SEA'],
+            'Steelers': ['Steelers', 'Pittsburgh', 'Pittsburgh Steelers', 'Pittsburgh. Steelers', 'PIT'],
+            'Texans': ['Texans', 'Houston', 'Houston Texans', 'Houston. Texans', 'HOU'],
+            'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
+            'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
+        }
+
+        let dynamicTeamNames = {};
+
+        Object.values(teamNames).forEach(teamNamePermutations => {
+            teamNamePermutations.forEach(teamName => {
+                dynamicTeamNames[teamName] = teamNamePermutations;
+            })    
+        });
+
+        console.log(dynamicTeamNames);
+
+        return dynamicTeamNames;
+    }
+
     function updatePlayerInfo() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
 
@@ -544,7 +595,7 @@
                 infoToSave = newInfo;
             }
 
-            const distNames = getDSTNames(playerName);
+            const distNames = DSTNames[playerName] || [];
 
             if (distNames.length) {
                 distNames.forEach(distName => {
@@ -571,46 +622,6 @@
             playerDictionary[shortNameWithoutPeriod] = infoToSave;
 
             return playerDictionary;
-
-            function getDSTNames(name) {
-                const teamNames = {
-                    '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
-                    'Bears': ['Bears', 'Chicago', 'Chicago Bears', 'Chicago. Bears', 'CHI'],
-                    'Bengals': ['Bengals', 'Cincinnati', 'Cincinnati Bengals', 'Cincinnati. Bengals', 'CIN'],
-                    'Bills': ['Bills', 'Buffalo', 'Buffalo Bills', 'Buffalo. Bills', 'BUF'],
-                    'Broncos': ['Broncos', 'Denver', 'Denver Broncos', 'Denver. Broncos', 'DEN'],
-                    'Browns': ['Browns', 'Cleveland', 'Cleveland Browns', 'Cleveland. Browns', 'CLE'],
-                    'Buccaneers': ['Buccaneers', 'Tampa Bay', 'Tampa Bay Buccaneers', 'Tampa Bay. Buccaneers', 'TB'],
-                    'Cardinals': ['Cardinals', 'Arizona', 'Arizona Cardinals', 'Arizona. Cardinals', 'ARI'],
-                    'Chargers': ['Chargers', 'Los Angeles', 'Los Angeles Chargers', 'Los Angeles. Chargers', 'LAC'],
-                    'Chiefs': ['Chiefs', 'Kansas City', 'Kansas City Chiefs', 'Kansas City. Chiefs', 'KC'],
-                    'Colts': ['Colts', 'Indianapolis', 'Indianapolis Colts', 'Indianapolis. Colts', 'IND'],
-                    'Commanders': ['Commanders', 'Washington', 'Washington Commanders', 'Washington. Commanders', 'WAS'],
-                    'Cowboys': ['Cowboys', 'Dallas', 'Dallas Cowboys', 'Dallas. Cowboys', 'DAL'],
-                    'Dolphins': ['Dolphins', 'Miami', 'Miami Dolphins', 'Miami. Dolphins', 'MIA'],
-                    'Eagles': ['Eagles', 'Philadelphia', 'Philadelphia Eagles', 'Philadelphia. Eagles', 'PHI'],
-                    'Falcons': ['Falcons', 'Atlanta', 'Atlanta Falcons', 'Atlanta. Falcons', 'ATL'],
-                    'Giants': ['Giants', 'New York', 'New York Giants', 'New York. Giants', 'NYG'],
-                    'Jaguars': ['Jaguars', 'Jacksonville', 'Jacksonville Jaguars', 'Jacksonville. Jaguars', 'JAX'],
-                    'Jets': ['Jets', 'New York', 'New York Jets', 'New York. Jets', 'NYJ'],
-                    'Lions': ['Lions', 'Detroit', 'Detroit Lions', 'Detroit. Lions', 'DET'],
-                    'Packers': ['Packers', 'Green Bay', 'Green Bay Packers', 'Green Bay. Packers', 'GB'],
-                    'Panthers': ['Panthers', 'Carolina', 'Carolina Panthers', 'Carolina. Panthers', 'CAR'],
-                    'Patriots': ['Patriots', 'New England', 'New England Patriots', 'New England. Patriots', 'NE'],
-                    'Raiders': ['Raiders', 'Las Vegas', 'Las Vegas Raiders', 'Las Vegas. Raiders', 'LV'],
-                    'Rams': ['Rams', 'Los Angeles', 'Los Angeles Rams', 'Los Angeles. Rams', 'LA'],
-                    'Ravens': ['Ravens', 'Baltimore', 'Baltimore Ravens', 'Baltimore. Ravens', 'BAL'],
-                    'Saints': ['Saints', 'New Orleans', 'New Orleans Saints', 'New Orleans. Saints', 'NO'],
-                    'Seahawks': ['Seahawks', 'Seattle', 'Seattle Seahawks', 'Seattle. Seahawks', 'SEA'],
-                    'Steelers': ['Steelers', 'Pittsburgh', 'Pittsburgh Steelers', 'Pittsburgh. Steelers', 'PIT'],
-                    'Texans': ['Texans', 'Houston', 'Houston Texans', 'Houston. Texans', 'HOU'],
-                    'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
-                    'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
-                }
-
-                return teamNames[name] || [];
-
-            }
         }
 
         function hideAllTabs() {
