@@ -8,12 +8,61 @@
             tabs: 'fuseSettingsPanel__tabs',
             borisChen: 'fuseSettingsPanel__tabs__borisChen',
             subvertADown: 'fuseSettingsPanel__tabs__subvertADown',
-            csv: 'fuseSettingsPanel__tabs__csv'
+            customData: 'fuseSettingsPanel__tabs__customData'
         },
         localStorage: 'fuseStorage'
     }
 
     runAutoUpdate();
+
+    const DSTNames = getDSTNames();
+
+    function getDSTNames() {
+        const teamNames = {
+            '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
+            'Bears': ['Bears', 'Chicago', 'Chicago Bears', 'Chicago. Bears', 'CHI'],
+            'Bengals': ['Bengals', 'Cincinnati', 'Cincinnati Bengals', 'Cincinnati. Bengals', 'CIN'],
+            'Bills': ['Bills', 'Buffalo', 'Buffalo Bills', 'Buffalo. Bills', 'BUF'],
+            'Broncos': ['Broncos', 'Denver', 'Denver Broncos', 'Denver. Broncos', 'DEN'],
+            'Browns': ['Browns', 'Cleveland', 'Cleveland Browns', 'Cleveland. Browns', 'CLE'],
+            'Buccaneers': ['Buccaneers', 'Tampa Bay', 'Tampa Bay Buccaneers', 'Tampa Bay. Buccaneers', 'TB'],
+            'Cardinals': ['Cardinals', 'Arizona', 'Arizona Cardinals', 'Arizona. Cardinals', 'ARI'],
+            'Chargers': ['Chargers', 'Los Angeles', 'Los Angeles Chargers', 'Los Angeles. Chargers', 'LAC'],
+            'Chiefs': ['Chiefs', 'Kansas City', 'Kansas City Chiefs', 'Kansas City. Chiefs', 'KC'],
+            'Colts': ['Colts', 'Indianapolis', 'Indianapolis Colts', 'Indianapolis. Colts', 'IND'],
+            'Commanders': ['Commanders', 'Washington', 'Washington Commanders', 'Washington. Commanders', 'WAS'],
+            'Cowboys': ['Cowboys', 'Dallas', 'Dallas Cowboys', 'Dallas. Cowboys', 'DAL'],
+            'Dolphins': ['Dolphins', 'Miami', 'Miami Dolphins', 'Miami. Dolphins', 'MIA'],
+            'Eagles': ['Eagles', 'Philadelphia', 'Philadelphia Eagles', 'Philadelphia. Eagles', 'PHI'],
+            'Falcons': ['Falcons', 'Atlanta', 'Atlanta Falcons', 'Atlanta. Falcons', 'ATL'],
+            'Giants': ['Giants', 'New York', 'New York Giants', 'New York. Giants', 'NYG'],
+            'Jaguars': ['Jaguars', 'Jacksonville', 'Jacksonville Jaguars', 'Jacksonville. Jaguars', 'JAX'],
+            'Jets': ['Jets', 'New York', 'New York Jets', 'New York. Jets', 'NYJ'],
+            'Lions': ['Lions', 'Detroit', 'Detroit Lions', 'Detroit. Lions', 'DET'],
+            'Packers': ['Packers', 'Green Bay', 'Green Bay Packers', 'Green Bay. Packers', 'GB'],
+            'Panthers': ['Panthers', 'Carolina', 'Carolina Panthers', 'Carolina. Panthers', 'CAR'],
+            'Patriots': ['Patriots', 'New England', 'New England Patriots', 'New England. Patriots', 'NE'],
+            'Raiders': ['Raiders', 'Las Vegas', 'Las Vegas Raiders', 'Las Vegas. Raiders', 'LV'],
+            'Rams': ['Rams', 'Los Angeles', 'Los Angeles Rams', 'Los Angeles. Rams', 'LA'],
+            'Ravens': ['Ravens', 'Baltimore', 'Baltimore Ravens', 'Baltimore. Ravens', 'BAL'],
+            'Saints': ['Saints', 'New Orleans', 'New Orleans Saints', 'New Orleans. Saints', 'NO'],
+            'Seahawks': ['Seahawks', 'Seattle', 'Seattle Seahawks', 'Seattle. Seahawks', 'SEA'],
+            'Steelers': ['Steelers', 'Pittsburgh', 'Pittsburgh Steelers', 'Pittsburgh. Steelers', 'PIT'],
+            'Texans': ['Texans', 'Houston', 'Houston Texans', 'Houston. Texans', 'HOU'],
+            'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
+            'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
+        }
+
+        let dynamicTeamNames = {};
+
+        Object.values(teamNames).forEach(teamNamePermutations => {
+            teamNamePermutations.forEach(teamName => {
+                dynamicTeamNames[teamName] = teamNamePermutations;
+            })
+        });
+
+        return dynamicTeamNames;
+    }
 
     function updatePlayerInfo() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
@@ -124,7 +173,7 @@
 
             const borisChenTier = data.borisChen.parsed[playerName];
             const subvertADownValue = data.subvertADown.parsed[playerName];
-            const csvValue = data.csv.parsed[playerName];
+            const customDataValue = data.customData.parsed[playerName];
 
             if (borisChenTier) {
                 info.push(`${data.borisChen.prefix || ''}${borisChenTier}`)
@@ -133,8 +182,8 @@
                 info.push(`${data.subvertADown.prefix || ''}${subvertADownValue}`)
             }
 
-            if (csvValue) {
-                info.push(`${data.csv.prefix || ''}${csvValue}`)
+            if (customDataValue) {
+                info.push(`${data.customData.prefix || ''}${customDataValue}`)
             }
 
             return info.join('/');
@@ -175,16 +224,16 @@
             toggleTabs(subvertADownTab.id)
         });
 
-        const csvTab = createCSVTab(savedData.csv);
-        const toggleCsv = makeButton('CSV', () => {
-            toggleTabs(csvTab.id)
+        const customDataTab = createCustomDataTab(savedData.customData);
+        const toggleCustomData = makeButton('CustomData', () => {
+            toggleTabs(customDataTab.id)
         });
         settingsPanel.appendChild(toggleBorisChenTab);
         settingsPanel.appendChild(toggleSubvertADownTab);
-        settingsPanel.appendChild(toggleCsv);
+        settingsPanel.appendChild(toggleCustomData);
         settingsPanel.appendChild(borisChenTab);
         settingsPanel.appendChild(subvertADownTab);
-        settingsPanel.appendChild(csvTab);
+        settingsPanel.appendChild(customDataTab);
 
         const saveBtn = makeButton('Save', () => {
             let state = getStoredData();
@@ -195,8 +244,8 @@
             state.data.subvertADown = { ...state.data.borisChen, ...getSubvertADownFormData() };
             state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
 
-            state.data.csv = { ...state.data.csv, ...getCSVFormData() };
-            state.data.csv.parsed = parseCSVFormData(state.data.csv.raw);
+            state.data.customData = { ...state.data.customData, ...getCustomDataFormData() };
+            state.data.customData.parsed = parseCustomDataFormData(state.data.customData.raw, state.data.customData);
 
             saveToLocalStorage(state);
             hideSettings();
@@ -433,24 +482,54 @@
             }
         }
 
-        function createCSVTab(savedData) {
+        function createCustomDataTab(savedData) {
             const tab = makeTabElement(
-                selectors.settingPanel.csv,
-                "Paste in your own comma separated value contents. First column should be the player's name."
+                selectors.settingPanel.customData,
+                "Paste in your own data from a spreadsheet or another website."
             );
 
             const prefixField = makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.csv}_prefix`,
+                `${selectors.settingPanel.customData}_prefix`,
                 'Ex: C',
                 savedData.prefix,
             );
 
             tab.appendChild(prefixField);
+            const dataSettings = document.createElement('div');
+            dataSettings.style.display = 'flex';
+            dataSettings.style.justifyContent = 'space-between';
+            dataSettings.style.marginBottom = '10px';
+
+            const delimiterField = createDropdownField(
+                'Delimiter',
+                `${selectors.settingPanel.customData}_delimiter`,
+                ['Tab', 'Space', 'Comma'],
+                savedData.delimiter
+            );
+            dataSettings.appendChild(delimiterField);
+
+            const playerColumnField = createDropdownField(
+                'Player Column',
+                `${selectors.settingPanel.customData}_playerColumn`,
+                Array(20).fill().map((_, i) => i + 1),
+                savedData.playerColumn
+            );
+            dataSettings.appendChild(playerColumnField);
+
+            const displayColumnField = createDropdownField(
+                'Display Columns',
+                `${selectors.settingPanel.customData}_displayColumn`,
+                ['All', ...Array(20).fill().map((_, i) => i + 1)],
+                savedData.displayColumn
+            );
+            dataSettings.appendChild(displayColumnField);
+
+            tab.appendChild(dataSettings);
 
             const positionField = makeTextAreaField(
                 'Custom',
-                `${selectors.settingPanel.csv}_custom`,
+                `${selectors.settingPanel.customData}_custom`,
                 savedData.raw['custom'],
                 { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
             );
@@ -460,28 +539,45 @@
             return tab;
         }
 
-        function getCSVFormData() {
+        function getCustomDataFormData() {
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.csv}_prefix`).value
+                prefix: document.getElementById(`${selectors.settingPanel.customData}_prefix`).value,
+                delimiter: document.getElementById(`${selectors.settingPanel.customData}_delimiter`).value,
+                playerColumn: document.getElementById(`${selectors.settingPanel.customData}_playerColumn`).value,
+                displayColumn: document.getElementById(`${selectors.settingPanel.customData}_displayColumn`).value
             };
 
-            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.csv}_custom`).value;
+            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.customData}_custom`).value;
 
             return data;
         }
 
-        function parseCSVFormData(rawData) {
+        function parseCustomDataFormData(rawData, savedData) {
             const players = {};
             const lines = rawData.custom.split('\n');
+
+            const delimiters = {
+                'Tab': '\t',
+                'Space': ' ',
+                'Comma': ','
+            }
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (line.length === 0) continue;
 
-                const [player, ...rest] = line.split(',');
+                const columns = line.split(delimiters[savedData.delimiter]);
+                const playerName = columns[savedData.playerColumn - 1];
+                let restOfData = [];
 
-                addPlayerInfoToDictionary(player, rest.join(',').trim(), players);
+                if (savedData.displayColumn === 'All') {
+                    restOfData = [...columns.slice(0, savedData.playerColumn - 1), ...columns.slice(savedData.playerColumn)];
+                } else {
+                    restOfData.push(columns[savedData.displayColumn - 1]);
+                }
+
+                addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), players);
             }
 
             return players;
@@ -497,7 +593,7 @@
                 infoToSave = newInfo;
             }
 
-            const distNames = getDSTNames(playerName);
+            const distNames = DSTNames[playerName] || [];
 
             if (distNames.length) {
                 distNames.forEach(distName => {
@@ -524,46 +620,6 @@
             playerDictionary[shortNameWithoutPeriod] = infoToSave;
 
             return playerDictionary;
-
-            function getDSTNames(name) {
-                const teamNames = {
-                    '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
-                    'Bears': ['Bears', 'Chicago', 'Chicago Bears', 'Chicago. Bears', 'CHI'],
-                    'Bengals': ['Bengals', 'Cincinnati', 'Cincinnati Bengals', 'Cincinnati. Bengals', 'CIN'],
-                    'Bills': ['Bills', 'Buffalo', 'Buffalo Bills', 'Buffalo. Bills', 'BUF'],
-                    'Broncos': ['Broncos', 'Denver', 'Denver Broncos', 'Denver. Broncos', 'DEN'],
-                    'Browns': ['Browns', 'Cleveland', 'Cleveland Browns', 'Cleveland. Browns', 'CLE'],
-                    'Buccaneers': ['Buccaneers', 'Tampa Bay', 'Tampa Bay Buccaneers', 'Tampa Bay. Buccaneers', 'TB'],
-                    'Cardinals': ['Cardinals', 'Arizona', 'Arizona Cardinals', 'Arizona. Cardinals', 'ARI'],
-                    'Chargers': ['Chargers', 'Los Angeles', 'Los Angeles Chargers', 'Los Angeles. Chargers', 'LAC'],
-                    'Chiefs': ['Chiefs', 'Kansas City', 'Kansas City Chiefs', 'Kansas City. Chiefs', 'KC'],
-                    'Colts': ['Colts', 'Indianapolis', 'Indianapolis Colts', 'Indianapolis. Colts', 'IND'],
-                    'Commanders': ['Commanders', 'Washington', 'Washington Commanders', 'Washington. Commanders', 'WAS'],
-                    'Cowboys': ['Cowboys', 'Dallas', 'Dallas Cowboys', 'Dallas. Cowboys', 'DAL'],
-                    'Dolphins': ['Dolphins', 'Miami', 'Miami Dolphins', 'Miami. Dolphins', 'MIA'],
-                    'Eagles': ['Eagles', 'Philadelphia', 'Philadelphia Eagles', 'Philadelphia. Eagles', 'PHI'],
-                    'Falcons': ['Falcons', 'Atlanta', 'Atlanta Falcons', 'Atlanta. Falcons', 'ATL'],
-                    'Giants': ['Giants', 'New York', 'New York Giants', 'New York. Giants', 'NYG'],
-                    'Jaguars': ['Jaguars', 'Jacksonville', 'Jacksonville Jaguars', 'Jacksonville. Jaguars', 'JAX'],
-                    'Jets': ['Jets', 'New York', 'New York Jets', 'New York. Jets', 'NYJ'],
-                    'Lions': ['Lions', 'Detroit', 'Detroit Lions', 'Detroit. Lions', 'DET'],
-                    'Packers': ['Packers', 'Green Bay', 'Green Bay Packers', 'Green Bay. Packers', 'GB'],
-                    'Panthers': ['Panthers', 'Carolina', 'Carolina Panthers', 'Carolina. Panthers', 'CAR'],
-                    'Patriots': ['Patriots', 'New England', 'New England Patriots', 'New England. Patriots', 'NE'],
-                    'Raiders': ['Raiders', 'Las Vegas', 'Las Vegas Raiders', 'Las Vegas. Raiders', 'LV'],
-                    'Rams': ['Rams', 'Los Angeles', 'Los Angeles Rams', 'Los Angeles. Rams', 'LA'],
-                    'Ravens': ['Ravens', 'Baltimore', 'Baltimore Ravens', 'Baltimore. Ravens', 'BAL'],
-                    'Saints': ['Saints', 'New Orleans', 'New Orleans Saints', 'New Orleans. Saints', 'NO'],
-                    'Seahawks': ['Seahawks', 'Seattle', 'Seattle Seahawks', 'Seattle. Seahawks', 'SEA'],
-                    'Steelers': ['Steelers', 'Pittsburgh', 'Pittsburgh Steelers', 'Pittsburgh. Steelers', 'PIT'],
-                    'Texans': ['Texans', 'Houston', 'Houston Texans', 'Houston. Texans', 'HOU'],
-                    'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
-                    'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
-                }
-
-                return teamNames[name] || [];
-
-            }
         }
 
         function hideAllTabs() {
@@ -603,9 +659,12 @@
                     raw: {},
                     parsed: {}
                 },
-                csv: {
+                customData: {
                     raw: {},
-                    parsed: {}
+                    parsed: {},
+                    delimiter: 'Tab',
+                    playerColumn: 1,
+                    displayColumn: 'All'
                 }
             }
         };
@@ -745,6 +804,31 @@
 
         field.appendChild(label);
         field.appendChild(textarea);
+
+        return field;
+    }
+
+    function createDropdownField(labelText, id, options, selectedValue) {
+        const field = document.createElement('div');
+        const label = makeLabelElement(labelText);
+        field.appendChild(label);
+
+        const selectElement = document.createElement('select');
+        selectElement.id = id;
+
+        options.forEach((option) => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option;
+            optionElement.textContent = option;
+
+            if (option.toString() === selectedValue.toString()) {
+                optionElement.selected = true;
+            }
+
+            selectElement.appendChild(optionElement);
+        });
+
+        field.appendChild(selectElement);
 
         return field;
     }
