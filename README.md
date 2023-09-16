@@ -15,10 +15,8 @@ Currently FUSE has the following capabilities
 
 - Borischen tiers
   - Primary position and FLEX tiers separated by `|`
-  - DST not supported on Sleeper since it uses an assortment of city name variations
 - SubvertADown streaming values
-  - DST not supported on Yahoo and Sleeper since they use city name
-- Custom CSV data
+- Custom Data from any website or spreadsheet
 
 FUSE should work on most pages where a player name is shown
 | ESPN             | Yahoo            | NFL.com           | Sleeper           | CBS               |
@@ -44,6 +42,11 @@ Go to the position page in [borischen.co](http://www.borischen.co/) that's relev
 Go to [subvertadown.com](https://subvertadown.com/) and copy the position stats on the home page over to FUSE. The full projection page tables are not supported.
 
 ![SubvertADown copying data example](/dist/assets/subvertadown_copying.png)
+
+### Custom Data
+Select which column has the player name and which columns to display. Works with tabular data from spreadsheets or websites.
+
+![Custom Data copying data example](/dist/assets/custom_data_copying.png)
 
 ## Install instructions 
 
