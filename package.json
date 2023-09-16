@@ -1,6 +1,6 @@
 {
   "name": "fuse",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "FUSE: Fantasy User Stat Enhancer",
   "main": "fuse.js",
   "repository": {
@@ -18,7 +18,7 @@
     "url": "https://github.com/jarekb84/FUSE/issues"
   },
   "homepage": "https://github.com/jarekb84/FUSE#readme",
-  "scripts": {    
+  "scripts": {
     "preprelease": "node prepRelease.js"
   },
   "devDependencies": {
