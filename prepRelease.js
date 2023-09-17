@@ -41,14 +41,14 @@ function clearTemp() {
 
 
 function injectVersionNumber() {
-  const fuseJsContent = fs.readFileSync('./fuse.js', 'utf-8');
+  const fuseJsContent = fs.readFileSync('./fuse.user.js', 'utf-8');
   const updatedContent = fuseJsContent.replace(/VERSION_PLACEHOLDER/g, version);
 
-  fs.writeFileSync(path.join(tempVersionDir, 'tempFuse.js'), updatedContent);
+  fs.writeFileSync(path.join(tempVersionDir, 'fuse.user.js'), updatedContent);
 }
 
 function extractUserScriptHeaders() {
-  const sourceContent = fs.readFileSync(path.join(tempVersionDir, 'tempFuse.js'), 'utf-8');
+  const sourceContent = fs.readFileSync(path.join(tempVersionDir, 'fuse.user.js'), 'utf-8');
   const match = sourceContent.match(/\/\/ ==UserScript==([\s\S]*?)\/\/ ==\/UserScript==/);
 
   if (!match) {
@@ -56,26 +56,26 @@ function extractUserScriptHeaders() {
     process.exit(1);
   }
 
-  const extractedSection = match[0];  
+  const extractedSection = match[0];
 
   return extractedSection;
 }
 
 // Minify the tempFuse.js
 function minify() {
-  const terserCommand = `terser temp/${version}/tempFuse.js -o temp/${version}/fuse.js`;
+  const terserCommand = `terser temp/${version}/fuse.user.js -o temp/${version}/fuse.js`;
   execSync(terserCommand, { stdio: 'inherit' });
 }
 
 function injectUserScriptHeadersIntoMinifiedFile(userScriptHeaders) {
-  // 2. Read the content from the target file
-const targetContent = fs.readFileSync(path.join(tempVersionDir, 'fuse.js'), 'utf-8');
+  // Read the content from the target file
+  const targetContent = fs.readFileSync(path.join(tempVersionDir, 'fuse.js'), 'utf-8');
 
-// 3. Concatenate the extracted section with the content of the target file
-const newContent = userScriptHeaders + '\n\n' + targetContent;
+  // Concatenate the extracted section with the content of the target file
+  const newContent = userScriptHeaders + '\n\n' + targetContent;
 
-// 4. Write the combined content back to the target file
-fs.writeFileSync(path.join(tempVersionDir, 'fuse.js'), newContent);
+  // Write the combined content back to the target file
+  fs.writeFileSync(path.join(tempVersionDir, 'fuse.js'), newContent);
 }
 // Copy files to the version-specific directory
 function copyFiles() {
