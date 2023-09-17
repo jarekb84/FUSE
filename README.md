@@ -49,25 +49,39 @@ Select which column has the player name and which columns to display. Works with
 
 ![Custom Data copying data example](/dist/assets/custom_data_copying.png)
 
-## Install instructions 
 
-At this time, this is just a bit of javascript, so you can either copy the fuse.js code and it into chrome dev tools or us the JS bookmarklet example below.
+## How to Install and Use FUSE
 
-### User Script manager
+FUSE can be set up in two main ways. Depending on your preference, and the features you need, you can choose the best method for you:
 
-- Install [Greasemonkey](https://www.greasespot.net/) (FireFox only) or [TamperMonkey](http://tampermonkey.net) or [ViolentMonkey](https://violentmonkey.github.io/get-it) for your browser
-- Go to one of these user script hosts
-  -  [FUSE on GreasyFork](https://greasyfork.org/en/scripts/475542-fuse)
-  -  [FUSE on OpenUserJS](https://openuserjs.org/scripts/Dison/FUSE)
-- Your user script extension should prompt you to install the FUSE user script
-- Once installed, refresh page
-- You can configure your user script extension to automatically check for updates
+### 1. User Script Manager (Recommended)
 
-### Bookmarklet
-This is a bookmark where instead of a URL, it runs a bit of javascript to fetch the FUSE.js file and execute it.
+> Only this version supports `Automatic BorisChen tier importing`
 
-1. Go to https://jarekb84.github.io/FUSE
-2. Drag the FUSE link to your bookmarks bar
-3. Click the bookmarklet to run FUSE on a page
+User scripts are little pieces of code that tweak how specific websites behave. To use FUSE this way:
 
+1. **Get a User Script Manager**: This tool lets you manage and run user scripts.
+   - FireFox: Download [Greasemonkey](https://www.greasespot.net/)
+   - Chrome/Edge/Firefox: [TamperMonkey](http://tampermonkey.net) or [ViolentMonkey](https://violentmonkey.github.io/get-it)
+   - For Safari: [Userscripts](https://apps.apple.com/us/app/userscripts/id1463298887)(free) or [Tampermonkey](https://apps.apple.com/us/app/tampermonkey/id1482490089) (paid)
+
+2. **Download FUSE Script**:
+   - Visit either [FUSE on GreasyFork](https://greasyfork.org/en/scripts/475542-fuse) or [FUSE on OpenUserJS](https://openuserjs.org/scripts/Dison/FUSE).
+   - The script manager you chose in step 1 will guide you on installing FUSE.
+
+3. **Refresh Your Browser**: After installation, refresh any web pages you have open to see FUSE in action.
+
+4. **Stay Updated**: Inside your script manager's settings, enable the option to automatically check for FUSE updates.
+
+### 2. Bookmarklet
+
+> **Note**: This version does **not** support the "Automatic BorisChen importing" feature. Its main benefit is that you don't need to install any browser extensions.
+
+Think of the bookmarklet as a special bookmark. Instead of taking you to a website, it runs FUSE for you.
+
+1. Head over to [https://jarekb84.github.io/FUSE](https://jarekb84.github.io/FUSE).
+2. Drag the **FUSE** link to your bookmarks bar.
+3. When you want to run FUSE, simply click the bookmark you added.
+
+For a visual step-by-step, refer below:  
 ![FUSE Install](/dist/assets/FUSE_install.gif)
