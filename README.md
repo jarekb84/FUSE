@@ -1,6 +1,6 @@
 # FUSE: Fantasy User Stat Enhancer
 
-FUSE easily integrates BorisChen tiers, SubvertADown streaming values, and custom table data (from both websites and spreadsheets) directly into your preferred fantasy platform. [Install instructions below](#how-to-install-and-use-fuse)
+FUSE easily integrates BorisChen tiers, SubvertADown streaming values, and your own data directly into your preferred fantasy platform to simplify roster selection, free agent scouting, and trade evaluations. [Install instructions below](#how-to-install-and-use-fuse)
 
 | ESPN             | Yahoo             | NFL.com           | Sleeper           | CBS               |
 |------------------|------------------ |------------------ |------------------ |------------------ |
