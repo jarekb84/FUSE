@@ -1,6 +1,6 @@
 # FUSE: Fantasy User Stat Enhancer
 
-FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations. [Install instructions below ](#install-instructions)
+FUSE easily integrates BorisChen tiers, SubvertADown streaming values, and custom table data (from both websites and spreadsheets) directly into your preferred fantasy platform. [Install instructions below](#how-to-install-and-use-fuse)
 
 | ESPN             | Yahoo             | NFL.com           | Sleeper           | CBS               |
 |------------------|------------------ |------------------ |------------------ |------------------ |
@@ -11,30 +11,31 @@ https://github.com/jarekb84/FUSE/assets/667983/766e9f9a-fc4a-4e20-9eda-1192c0072
 
 
 ## Features
-Currently FUSE has the following capabilities
+- **Platform Support**: Works on ESPN, Yahoo, Sleeper, NFL.com, and CBS.com.
+- **Universal Player Integration**: FUSE operates wherever player info is displayed, including team rosters, game matchups, free agents, trade screens, and more.
+- **Consistent Player Names**: No worries about different naming standards. FUSE ensures smooth operation across platforms and data sources.
 
-- Borischen tiers
-  - Automatic and manual importing supported
-  - Primary position and FLEX tiers separated by `|`
-- SubvertADown streaming values
-- Custom Data from any website or spreadsheet
 
-FUSE should work on most pages where a player name is shown
-| ESPN             | Yahoo            | NFL.com           | Sleeper           | CBS               |
-|------------------|------------------|------------------ |------------------ |------------------ |
-| My Team          | Roster           | My Team           | Matchup           | My Team           |
-| Opposing Teams   | Player Updates   | Players Add       | Team              | Roster Grid       |
-| Free Agents      | Watch List       | Other Teams       | Players           | Scout Team        |
-| Scoring Leaders  | Player List      | Trade Players     | Trend             | Trades            |
-| FantasyCast      | Matchups         | Game Center       | Scores            | Other Teams       |
-| Box Scores       | Research Overview|                   |                   | Players           |
-|                  | Injury Reports   |                   |                   | Gametracker       |
-|                  | Propose Trade    |                   |                   | Scoring Preview   |
+## Data Sources
+- **Borischen Tiers**:
+  - Both automatic and manual importing available.
+  - Primary and FLEX positions divided by `|`.
+- **SubvertADown**: Easily import streaming DST/K/QB values. Just copy from the home page and paste!
+- **Your Own Data**: Have custom data from a site or a spreadsheet? Simply copy and paste it into FUSE.
 
 ## Importing Data
-Data is imported manually by copying and pasting the content from a given site. FUSE includes some logic to transform the pasted text into something which can be used to extend player info.
+Data can be imported automatically (BorisChen only) or manually by copying and pasting the content from a given site. FUSE includes some logic to transform the pasted text into something which can be used to extend player info.
 
-### Borischen
+### BorisChen
+#### Automatic Import
+FUSE can be configured to automatically retrieve BorisChen tier data in the background. To set this up, just open Fuse, selector your league's scoring option, click fetch, and then save.
+
+| Select Scoring   | Click Fetch       | 
+|------------------|------------------ |
+| ![Select Scoring](/dist/assets/borischen_auto_1.png) | ![Fetch results](/dist/assets/borischen_auto_2.png) |
+
+
+#### Manual Import
 Go to the position page in [borischen.co](http://www.borischen.co/) that's relevant for your league's scoring rules and copy the data over to FUSE.
 
 ![Borischen copying data example](/dist/assets/borischen_copying.png)
