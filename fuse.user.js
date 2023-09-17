@@ -3,6 +3,7 @@
 // @namespace   https://github.com/jarekb84/FUSE
 // @version     VERSION_PLACEHOLDER
 // @author      Jerry Batorski
+// @license     Apache-2.0
 // @description FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations.
 // @grant       GM.xmlHttpRequest
 // @match       https://fantasy.espn.com/*
