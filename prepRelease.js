@@ -47,7 +47,7 @@ function copyFiles() {
 
 function injectVersionNumber() {
   const fuseJsContent = fs.readFileSync('./fuse.js', 'utf-8');
-  const updatedContent = fuseJsContent.replace('VERSION_PLACEHOLDER', version);
+  const updatedContent = fuseJsContent.replace(/VERSION_PLACEHOLDER/g, version);
 
   fs.writeFileSync(path.join(tempVersionDir, 'tempFuse.js'), updatedContent);
 }
