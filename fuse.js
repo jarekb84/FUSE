@@ -201,7 +201,7 @@
         }
     }
 
-    makePageButton(selectors.showSettingsBtn, '⚙', 175, editSettings);
+    makePageButton(selectors.showSettingsBtn, '⚙', 100, editSettings);
 
     function editSettings() {
         if (document.getElementById(selectors.settingPanel.name)) {
@@ -274,12 +274,12 @@
 
             settingsPanel.setAttribute('id', selectors.settingPanel.name);
             settingsPanel.style.position = 'fixed';
-            settingsPanel.style.top = '200px';
+            settingsPanel.style.top = '125px';
             settingsPanel.style.right = '0';
             settingsPanel.style.backgroundColor = '#f9f9f9';
-            settingsPanel.style.width = '400px';
+            settingsPanel.style.width = '410px';
             settingsPanel.style.padding = '10px';
-            settingsPanel.style.zIndex = '1000';
+            settingsPanel.style.zIndex = '9999999';
             settingsPanel.style.textAlign = 'left';
 
             settingsPanel.style.padding = '15px';
@@ -719,7 +719,7 @@
         button.style.top = `${offset}px`;
         button.style.right = 0;
         button.style.color = 'green';
-        button.style['z-index'] = '10000';
+        button.style.zIndex = '9999999';
         button.style.fontSize = '16px';
         button.style.padding = '1px 6px';
         button.style.marginRight = '0';
@@ -751,6 +751,8 @@
         tab.id = id;
         tab.className = selectors.settingPanel.tabs;
         tab.style.padding = '10px';
+        tab.style.maxHeight = '70vh';
+        tab.style.overflowY = 'auto';
 
         const helpText = document.createElement('p');
         helpText.textContent = content;
