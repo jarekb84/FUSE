@@ -1,4 +1,15 @@
-(function () {
+// ==UserScript==
+// @name        FUSE
+// @namespace   https://github.com/jarekb84/FUSE
+// @match       https://fantasy.espn.com/*
+// @grant       none
+// @version     VERSION_PLACEHOLDER
+// @author      Jerry Batorski
+// @description FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations.
+// @grant       GM.xmlHttpRequest
+// ==/UserScript==
+
+(async function () {
     const version = 'VERSION_PLACEHOLDER';
     const selectors = {
         playerInfo: 'fusePlayerInfo',
@@ -13,10 +24,42 @@
         localStorage: 'fuseStorage'
     }
 
-    runAutoUpdate();
-
     const DSTNames = getDSTNames();
+    await runBorisChenAutoUpdate();
 
+    async function runBorisChenAutoUpdate() {
+        let savedData = getStoredData();
+        const isDaily = savedData.data.borisChen.autoFetch === 'Daily';
+        const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
+        const eligibleForAutoUpdate = isDaily && hasBeenFetched;
+
+        if (!eligibleForAutoUpdate) {
+            return Promise.resolve();
+        }
+
+        const lastFetched = parseInt(savedData.data.borisChen.lastFetched, 10);
+        const currentTime = Date.now();
+        const twentyFourHoursInMs = 300000;
+
+        const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
+
+        if (isBelow24HoursOld) {
+            return Promise.resolve();
+        }
+
+        console.log('Fetching data from BorisChen');
+
+        const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
+        savedData.data.borisChen.raw = rawData;
+        savedData.data.borisChen.parsed = parseBorischenRawData(rawData);
+        savedData.data.borisChen.lastFetched = Date.now();
+
+        saveToLocalStorage(savedData);
+
+        return Promise.resolve();
+    }
+
+    runAutoUpdate();
     function getDSTNames() {
         const teamNames = {
             '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
@@ -303,8 +346,62 @@
             );
 
             tab.appendChild(prefixField);
-
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
+            if (window.GM?.info) {
+                const dataSettings = document.createElement('div');
+                dataSettings.style.display = 'flex';
+                dataSettings.style.justifyContent = 'space-between';
+                dataSettings.style.marginBottom = '10px';
+
+                const scoringField = createDropdownField(
+                    'Scoring',
+                    `${selectors.settingPanel.borisChen}_scoring`,
+                    ['Standard', '0.5 PPR', 'PPR'],
+                    savedData.scoring
+                );
+
+                const autoFetchField = createDropdownField(
+                    'AutoFetch',
+                    `${selectors.settingPanel.borisChen}_autoFetch`,
+                    ['Never', 'Daily'],
+                    savedData.autoFetch
+                );
+
+                autoFetchField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
+
+                const lastFetchedDateTime = formatTimestamp(savedData.lastFetched)
+
+                const lastFetchedField = makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
+                lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
+
+                const fetchDataBtn = makeButton('Fetch', async () => {
+                    const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
+                    self.disabled = true;
+                    const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
+                    const rawData = await fetchDataFromBorisChenWebsite(scoring);
+                    self.disabled = false;
+                    const lastFetchedTimestamp = Date.now()
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = formatTimestamp(lastFetchedTimestamp);
+
+                    lastFetchedField.style.visibility = 'visible';
+                    autoFetchField.style.visibility = 'visible';
+
+                    for (const position of positions) {
+                        let positionInput = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`);
+                        positionInput.value = rawData[position];
+                    }
+                });
+                fetchDataBtn.id = `${selectors.settingPanel.borisChen}_fetchDataBtn`;
+
+
+                dataSettings.appendChild(scoringField);
+                dataSettings.appendChild(autoFetchField);
+                dataSettings.appendChild(lastFetchedField);
+
+                tab.appendChild(dataSettings);
+                tab.appendChild(fetchDataBtn);
+            }
 
             for (const position of positions) {
                 const positionField = makeTextAreaField(
@@ -317,12 +414,65 @@
             }
 
             return tab;
+
+            async function fetchDataFromBorisChenWebsite(scoring) {
+                const scoreSuffix = {
+                    "PPR": "-PPR",
+                    "0.5 PPR": "-HALF",
+                    "Standard": ""
+                }
+
+                const positionsToGet = [
+                    { key: 'QB', val: `QB` },
+                    { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
+                    { key: 'WR', val: `WR${scoreSuffix[scoring]}` },
+                    { key: 'TE', val: `TE${scoreSuffix[scoring]}` },
+                    { key: 'FLEX', val: `FLX${scoreSuffix[scoring]}` },
+                    { key: 'K', val: `K` },
+                    { key: 'DST', val: `DST` },
+                ]
+
+                let rawTierData = {};
+
+                const promises = positionsToGet.map(position => {
+                    return new Promise((resolve, reject) => {
+                        GM.xmlHttpRequest({
+                            method: "GET",
+                            url: makeUrlString(position.val),
+                            headers: {
+                                "Accept": "text/plain"
+                            },
+                            onload: (response) => {
+                                if (response.status >= 200 && response.status < 400) {
+                                    rawTierData[position.key] = response.responseText;
+                                    resolve();
+                                } else {
+                                    reject(new Error('Request failed'));
+                                }
+                            },
+                            onerror: () => {
+                                reject(new Error('Network error'));
+                            }
+                        });
+                    });
+                });
+                await Promise.all(promises);
+
+                return rawTierData;
+
+                function makeUrlString(position) {
+                    return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
+                }
+            }
         }
 
         function getBorischenFormData() {
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value
+                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value,
+                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value,
+                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`).value,
+                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).getAttribute('data-state')
             };
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
@@ -653,7 +803,10 @@
             data: {
                 borisChen: {
                     raw: {},
-                    parsed: {}
+                    parsed: {},
+                    scoring: 'Standard',
+                    autoFetch: 'Daily',
+                    lastFetched: ''
                 },
                 subvertADown: {
                     raw: {},
@@ -768,6 +921,21 @@
         return label;
     }
 
+    function makeReadOnlyField(labelText, id, value, state) {
+        const field = document.createElement('div');
+        const label = makeLabelElement(labelText);
+        const displayValue = document.createElement('span');
+        displayValue.id = id;
+        displayValue.setAttribute('data-state', state);
+        displayValue.style.marginBottom = '10px';
+        displayValue.textContent = value;
+
+        field.appendChild(label);
+        field.appendChild(displayValue);
+
+        return field;
+    }
+
     function makeInputField(labelText, id, placeholder, value,) {
         const field = document.createElement('div');
         const label = makeLabelElement(labelText)
@@ -832,9 +1000,25 @@
 
         return field;
     }
+    function formatTimestamp(timestamp) {
+        const date = new Date(parseInt(timestamp, 10));
+
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+
+        // Extracting the date in YYYY/MM/DD format
+        const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+        const formattedDate = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+
+        // Extracting the time in 12-hour format with AM/PM
+        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+        const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date).toLowerCase();  // Convert to lowercase to get "am/pm"
+
+        return `${formattedDate} @ ${formattedTime}`;
+    }
 
     function runAutoUpdate() {
-
         if (window.fuse?.autoUpdateObserver) {
             window.fuse.autoUpdateObserver.disconnect();
         } else {
