@@ -1,12 +1,15 @@
 // ==UserScript==
 // @name        FUSE
 // @namespace   https://github.com/jarekb84/FUSE
-// @match       https://fantasy.espn.com/*
-// @grant       none
 // @version     VERSION_PLACEHOLDER
 // @author      Jerry Batorski
 // @description FUSE lets you enhance player stats in your fantasy football app by layering in your own custom data to simplify roster selection, free agent scouting, and trade evaluations.
 // @grant       GM.xmlHttpRequest
+// @match       https://fantasy.espn.com/*
+// @match       https://fantasy.nfl.com/*
+// @match       https://football.fantasysports.yahoo.com/*
+// @match       https://*.football.cbssports.com/*
+// @match       https://sleeper.com/*
 // ==/UserScript==
 
 (async function () {
