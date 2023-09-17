@@ -584,7 +584,7 @@
         }
 
         function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
-            const playerName = player.replace(' II', '').replace(' III', '');
+            const playerName = player.replace(' III', '').replace(' II', '');
             let infoToSave = playerDictionary[playerName]
 
             if (infoToSave) {
@@ -604,6 +604,7 @@
             }
 
             playerDictionary[playerName] = infoToSave;
+            playerDictionary[player] = infoToSave; // some sites do use the II/III name
 
             const [first, ...rest] = playerName.split(' ');
 
