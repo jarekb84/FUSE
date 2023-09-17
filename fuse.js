@@ -569,6 +569,8 @@
 
                 const columns = line.split(delimiters[savedData.delimiter]);
                 const playerName = columns[savedData.playerColumn - 1];
+                if (!playerName) continue;
+                
                 let restOfData = [];
 
                 if (savedData.displayColumn === 'All') {
