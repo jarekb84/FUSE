@@ -29,6 +29,7 @@
 
     const DSTNames = getDSTNames();
     await runBorisChenAutoUpdate();
+    runAutoUpdate();
 
     async function runBorisChenAutoUpdate() {
         let savedData = getStoredData();
@@ -62,7 +63,161 @@
         return Promise.resolve();
     }
 
-    runAutoUpdate();
+    function parseBorischenRawData(rawTierData) {
+        const players = {};
+
+        parseTierInfo(rawTierData.QB, players);
+        parseTierInfo(rawTierData.RB, players);
+        parseTierInfo(rawTierData.WR, players);
+        parseTierInfo(rawTierData.TE, players);
+        parseTierInfo(rawTierData.FLEX, players);
+        parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
+        parseTierInfo(rawTierData.K, players);
+
+        return players;
+
+        function parseTierInfo(raw, playerDictionary) {
+            if (!raw) {
+                return
+            }
+
+            const tiers = raw.split('\n');
+
+            tiers.forEach(tierRow => {
+                const row = tierRow.split(': ');
+                const tier = row[0].replace('Tier ', '');
+                const players = row[1];
+
+                players?.split(', ').forEach((player, index) => {
+                    addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                });
+            });
+
+            return playerDictionary;
+        }
+
+        function splitUpDSTByPlatform(raw) {
+            if (!raw) {
+                return;
+            }
+
+            const tiers = raw.split('\n');
+            const output = [];
+
+            tiers.forEach(tierRow => {
+                const row = tierRow.split(': ');
+                const tier = row[0];
+                const teams = row[1];
+                let rowOutput = `${tier}: `;
+
+                teams?.split(', ').forEach((team, index) => {
+                    // Team name is the last word
+                    const teamName = team.split(' ').pop();
+
+                    if (index !== 0) {
+                        rowOutput += `, `;
+                    }
+
+                    rowOutput += `${teamName}`;
+                });
+
+                output.push(rowOutput);
+            });
+
+            return output.join('\n');
+        }
+    }
+
+    async function fetchDataFromBorisChenWebsite(scoring) {
+        const scoreSuffix = {
+            "PPR": "-PPR",
+            "0.5 PPR": "-HALF",
+            "Standard": ""
+        }
+
+        const positionsToGet = [
+            { key: 'QB', val: `QB` },
+            { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
+            { key: 'WR', val: `WR${scoreSuffix[scoring]}` },
+            { key: 'TE', val: `TE${scoreSuffix[scoring]}` },
+            { key: 'FLEX', val: `FLX${scoreSuffix[scoring]}` },
+            { key: 'K', val: `K` },
+            { key: 'DST', val: `DST` },
+        ]
+
+        let rawTierData = {};
+
+        const promises = positionsToGet.map(position => {
+            return new Promise((resolve, reject) => {
+                GM.xmlHttpRequest({
+                    method: "GET",
+                    url: makeUrlString(position.val),
+                    headers: {
+                        "Accept": "text/plain"
+                    },
+                    onload: (response) => {
+                        if (response.status >= 200 && response.status < 400) {
+                            rawTierData[position.key] = response.responseText;
+                            resolve();
+                        } else {
+                            reject(new Error('Request failed'));
+                        }
+                    },
+                    onerror: () => {
+                        reject(new Error('Network error'));
+                    }
+                });
+            });
+        });
+        await Promise.all(promises);
+
+        return rawTierData;
+
+        function makeUrlString(position) {
+            return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
+        }
+    }
+
+    function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
+        const playerName = player.replace(' III', '').replace(' II', '');
+        let infoToSave = playerDictionary[playerName]
+
+        if (infoToSave) {
+            infoToSave += `|${newInfo}`;
+        } else {
+            infoToSave = newInfo;
+        }
+
+        const distNames = DSTNames[playerName] || [];
+
+        if (distNames.length) {
+            distNames.forEach(distName => {
+                playerDictionary[distName] = infoToSave;
+            });
+
+            return playerDictionary;
+        }
+
+        playerDictionary[playerName] = infoToSave;
+        playerDictionary[player] = infoToSave; // some sites do use the II/III name
+
+        const [first, ...rest] = playerName.split(' ');
+
+        // Some sites truncate player names on some, but not all pages
+        // ie Christian McCaffrey is sometimes shown as C. McCaffrey
+        // storing both the long and short name allows the playerDictionary lookup
+        // to work on all pages
+
+        const shortName = `${first[0]}. ${rest.join(' ')}`
+        playerDictionary[shortName] = infoToSave;
+
+        // Sleeper shows Christian McCaffrey as C McCaffrey
+        const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
+        playerDictionary[shortNameWithoutPeriod] = infoToSave;
+
+        return playerDictionary;
+    }
+
     function getDSTNames() {
         const teamNames = {
             '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
@@ -110,7 +265,7 @@
         return dynamicTeamNames;
     }
 
-    function updatePlayerInfo() {
+    function injectFUSEInfoIntoFantasySite() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
 
         spans.forEach(span => {
@@ -295,7 +450,7 @@
 
             saveToLocalStorage(state);
             hideSettings();
-            updatePlayerInfo();
+            injectFUSEInfoIntoFantasySite();
         });
 
         settingsPanel.appendChild(saveBtn);
@@ -417,56 +572,6 @@
             }
 
             return tab;
-
-            async function fetchDataFromBorisChenWebsite(scoring) {
-                const scoreSuffix = {
-                    "PPR": "-PPR",
-                    "0.5 PPR": "-HALF",
-                    "Standard": ""
-                }
-
-                const positionsToGet = [
-                    { key: 'QB', val: `QB` },
-                    { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
-                    { key: 'WR', val: `WR${scoreSuffix[scoring]}` },
-                    { key: 'TE', val: `TE${scoreSuffix[scoring]}` },
-                    { key: 'FLEX', val: `FLX${scoreSuffix[scoring]}` },
-                    { key: 'K', val: `K` },
-                    { key: 'DST', val: `DST` },
-                ]
-
-                let rawTierData = {};
-
-                const promises = positionsToGet.map(position => {
-                    return new Promise((resolve, reject) => {
-                        GM.xmlHttpRequest({
-                            method: "GET",
-                            url: makeUrlString(position.val),
-                            headers: {
-                                "Accept": "text/plain"
-                            },
-                            onload: (response) => {
-                                if (response.status >= 200 && response.status < 400) {
-                                    rawTierData[position.key] = response.responseText;
-                                    resolve();
-                                } else {
-                                    reject(new Error('Request failed'));
-                                }
-                            },
-                            onerror: () => {
-                                reject(new Error('Network error'));
-                            }
-                        });
-                    });
-                });
-                await Promise.all(promises);
-
-                return rawTierData;
-
-                function makeUrlString(position) {
-                    return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
-                }
-            }
         }
 
         function getBorischenFormData() {
@@ -485,71 +590,6 @@
             }
 
             return data;
-        }
-
-        function parseBorischenRawData(rawTierData) {
-            const players = {};
-
-            parseTierInfo(rawTierData.QB, players);
-            parseTierInfo(rawTierData.RB, players);
-            parseTierInfo(rawTierData.WR, players);
-            parseTierInfo(rawTierData.TE, players);
-            parseTierInfo(rawTierData.FLEX, players);
-            parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
-            parseTierInfo(rawTierData.K, players);
-
-            return players;
-
-            function parseTierInfo(raw, playerDictionary) {
-                if (!raw) {
-                    return
-                }
-
-                const tiers = raw.split('\n');
-
-                tiers.forEach(tierRow => {
-                    const row = tierRow.split(': ');
-                    const tier = row[0].replace('Tier ', '');
-                    const players = row[1];
-
-                    players?.split(', ').forEach((player, index) => {
-                        addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
-                    });
-                });
-
-                return playerDictionary;
-            }
-
-            function splitUpDSTByPlatform(raw) {
-                if (!raw) {
-                    return;
-                }
-
-                const tiers = raw.split('\n');
-                const output = [];
-
-                tiers.forEach(tierRow => {
-                    const row = tierRow.split(': ');
-                    const tier = row[0];
-                    const teams = row[1];
-                    let rowOutput = `${tier}: `;
-
-                    teams?.split(', ').forEach((team, index) => {
-                        // Team name is the last word
-                        const teamName = team.split(' ').pop();
-
-                        if (index !== 0) {
-                            rowOutput += `, `;
-                        }
-
-                        rowOutput += `${teamName}`;
-                    });
-
-                    output.push(rowOutput);
-                });
-
-                return output.join('\n');
-            }
         }
 
         function createSubvertADownTab(savedData) {
@@ -723,7 +763,7 @@
                 const columns = line.split(delimiters[savedData.delimiter]);
                 const playerName = columns[savedData.playerColumn - 1];
                 if (!playerName) continue;
-                
+
                 let restOfData = [];
 
                 if (savedData.displayColumn === 'All') {
@@ -738,45 +778,7 @@
             return players;
         }
 
-        function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
-            const playerName = player.replace(' III', '').replace(' II', '');
-            let infoToSave = playerDictionary[playerName]
 
-            if (infoToSave) {
-                infoToSave += `|${newInfo}`;
-            } else {
-                infoToSave = newInfo;
-            }
-
-            const distNames = DSTNames[playerName] || [];
-
-            if (distNames.length) {
-                distNames.forEach(distName => {
-                    playerDictionary[distName] = infoToSave;
-                });
-
-                return playerDictionary;
-            }
-
-            playerDictionary[playerName] = infoToSave;
-            playerDictionary[player] = infoToSave; // some sites do use the II/III name
-
-            const [first, ...rest] = playerName.split(' ');
-
-            // Some sites truncate player names on some, but not all pages
-            // ie Christian McCaffrey is sometimes shown as C. McCaffrey
-            // storing both the long and short name allows the playerDictionary lookup
-            // to work on all pages
-
-            const shortName = `${first[0]}. ${rest.join(' ')}`
-            playerDictionary[shortName] = infoToSave;
-
-            // Sleeper shows Christian McCaffrey as C McCaffrey
-            const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
-            playerDictionary[shortNameWithoutPeriod] = infoToSave;
-
-            return playerDictionary;
-        }
 
         function hideAllTabs() {
             const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
@@ -1040,7 +1042,7 @@
             // avoids an infinite loop of updates
             observer.disconnect();
 
-            updatePlayerInfo();
+            injectFUSEInfoIntoFantasySite();
 
             // resume monitoring for mutations
             observer.observe(document.body, {
