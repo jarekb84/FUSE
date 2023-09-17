@@ -14,6 +14,7 @@ https://github.com/jarekb84/FUSE/assets/667983/766e9f9a-fc4a-4e20-9eda-1192c0072
 Currently FUSE has the following capabilities
 
 - Borischen tiers
+  - Automatic and manual importing supported
   - Primary position and FLEX tiers separated by `|`
 - SubvertADown streaming values
 - Custom Data from any website or spreadsheet
@@ -51,6 +52,14 @@ Select which column has the player name and which columns to display. Works with
 ## Install instructions 
 
 At this time, this is just a bit of javascript, so you can either copy the fuse.js code and it into chrome dev tools or us the JS bookmarklet example below.
+
+### User Script manager
+
+- Install [Greasemonkey](https://www.greasespot.net/) (FireFox only) or [TamperMonkey](http://tampermonkey.net) or [ViolentMonkey](https://violentmonkey.github.io/get-it) for your browser
+- Go to the [user script](https://greasyfork.org/en/scripts/475542-fuse) page
+- Your script manager should prompt you to install script
+- Once installed, refresh page
+- You can configure your script manager to check for updates
 
 ### Bookmarklet
 This is a bookmark where instead of a URL, it runs a bit of javascript to fetch the FUSE.js file and execute it.
