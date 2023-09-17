@@ -1,4 +1,19 @@
-(function () {
+// ==UserScript==
+// @name        FUSE
+// @namespace   https://github.com/jarekb84/FUSE
+// @version     VERSION_PLACEHOLDER
+// @author      Jerry Batorski
+// @license     Apache-2.0
+// @description FUSE (Fantasy User Stat Enhancer) easily integrates BorisChen tiers, SubvertADown streaming values, and your own data directly into your preferred fantasy platform to simplify roster selection, free agent scouting, and trade evaluations.
+// @grant       GM.xmlHttpRequest
+// @match       https://fantasy.espn.com/*
+// @match       https://fantasy.nfl.com/*
+// @match       https://football.fantasysports.yahoo.com/*
+// @match       https://*.football.cbssports.com/*
+// @match       https://sleeper.com/*
+// ==/UserScript==
+
+(async function () {
     const version = 'VERSION_PLACEHOLDER';
     const selectors = {
         playerInfo: 'fusePlayerInfo',
@@ -13,9 +28,196 @@
         localStorage: 'fuseStorage'
     }
 
+    const DSTNames = getDSTNames();
+    await runBorisChenAutoUpdate();
     runAutoUpdate();
 
-    const DSTNames = getDSTNames();
+    async function runBorisChenAutoUpdate() {
+        let savedData = getStoredData();
+        const isDaily = savedData.data.borisChen.autoFetch === 'Daily';
+        const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
+        const eligibleForAutoUpdate = isDaily && hasBeenFetched;
+
+        if (!eligibleForAutoUpdate) {
+            return Promise.resolve();
+        }
+
+        const lastFetched = parseInt(savedData.data.borisChen.lastFetched, 10);
+        const currentTime = Date.now();
+        const twentyFourHoursInMs = 300000;
+
+        const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
+
+        if (isBelow24HoursOld) {
+            return Promise.resolve();
+        }
+
+        console.log('Fetching data from BorisChen');
+
+        const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
+        savedData.data.borisChen.raw = rawData;
+        savedData.data.borisChen.parsed = parseBorischenRawData(rawData);
+        savedData.data.borisChen.lastFetched = Date.now();
+
+        saveToLocalStorage(savedData);
+
+        return Promise.resolve();
+    }
+
+    function parseBorischenRawData(rawTierData) {
+        const players = {};
+
+        parseTierInfo(rawTierData.QB, players);
+        parseTierInfo(rawTierData.RB, players);
+        parseTierInfo(rawTierData.WR, players);
+        parseTierInfo(rawTierData.TE, players);
+        parseTierInfo(rawTierData.FLEX, players);
+        parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
+        parseTierInfo(rawTierData.K, players);
+
+        return players;
+
+        function parseTierInfo(raw, playerDictionary) {
+            if (!raw) {
+                return
+            }
+
+            const tiers = raw.split('\n');
+
+            tiers.forEach(tierRow => {
+                const row = tierRow.split(': ');
+                const tier = row[0].replace('Tier ', '');
+                const players = row[1];
+
+                players?.split(', ').forEach((player, index) => {
+                    addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                });
+            });
+
+            return playerDictionary;
+        }
+
+        function splitUpDSTByPlatform(raw) {
+            if (!raw) {
+                return;
+            }
+
+            const tiers = raw.split('\n');
+            const output = [];
+
+            tiers.forEach(tierRow => {
+                const row = tierRow.split(': ');
+                const tier = row[0];
+                const teams = row[1];
+                let rowOutput = `${tier}: `;
+
+                teams?.split(', ').forEach((team, index) => {
+                    // Team name is the last word
+                    const teamName = team.split(' ').pop();
+
+                    if (index !== 0) {
+                        rowOutput += `, `;
+                    }
+
+                    rowOutput += `${teamName}`;
+                });
+
+                output.push(rowOutput);
+            });
+
+            return output.join('\n');
+        }
+    }
+
+    async function fetchDataFromBorisChenWebsite(scoring) {
+        const scoreSuffix = {
+            "PPR": "-PPR",
+            "0.5 PPR": "-HALF",
+            "Standard": ""
+        }
+
+        const positionsToGet = [
+            { key: 'QB', val: `QB` },
+            { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
+            { key: 'WR', val: `WR${scoreSuffix[scoring]}` },
+            { key: 'TE', val: `TE${scoreSuffix[scoring]}` },
+            { key: 'FLEX', val: `FLX${scoreSuffix[scoring]}` },
+            { key: 'K', val: `K` },
+            { key: 'DST', val: `DST` },
+        ]
+
+        let rawTierData = {};
+
+        const promises = positionsToGet.map(position => {
+            return new Promise((resolve, reject) => {
+                GM.xmlHttpRequest({
+                    method: "GET",
+                    url: makeUrlString(position.val),
+                    headers: {
+                        "Accept": "text/plain"
+                    },
+                    onload: (response) => {
+                        if (response.status >= 200 && response.status < 400) {
+                            rawTierData[position.key] = response.responseText;
+                            resolve();
+                        } else {
+                            reject(new Error('Request failed'));
+                        }
+                    },
+                    onerror: () => {
+                        reject(new Error('Network error'));
+                    }
+                });
+            });
+        });
+        await Promise.all(promises);
+
+        return rawTierData;
+
+        function makeUrlString(position) {
+            return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
+        }
+    }
+
+    function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
+        const playerName = player.replace(' III', '').replace(' II', '');
+        let infoToSave = playerDictionary[playerName]
+
+        if (infoToSave) {
+            infoToSave += `|${newInfo}`;
+        } else {
+            infoToSave = newInfo;
+        }
+
+        const distNames = DSTNames[playerName] || [];
+
+        if (distNames.length) {
+            distNames.forEach(distName => {
+                playerDictionary[distName] = infoToSave;
+            });
+
+            return playerDictionary;
+        }
+
+        playerDictionary[playerName] = infoToSave;
+        playerDictionary[player] = infoToSave; // some sites do use the II/III name
+
+        const [first, ...rest] = playerName.split(' ');
+
+        // Some sites truncate player names on some, but not all pages
+        // ie Christian McCaffrey is sometimes shown as C. McCaffrey
+        // storing both the long and short name allows the playerDictionary lookup
+        // to work on all pages
+
+        const shortName = `${first[0]}. ${rest.join(' ')}`
+        playerDictionary[shortName] = infoToSave;
+
+        // Sleeper shows Christian McCaffrey as C McCaffrey
+        const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
+        playerDictionary[shortNameWithoutPeriod] = infoToSave;
+
+        return playerDictionary;
+    }
 
     function getDSTNames() {
         const teamNames = {
@@ -64,7 +266,7 @@
         return dynamicTeamNames;
     }
 
-    function updatePlayerInfo() {
+    function injectFUSEInfoIntoFantasySite() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
 
         spans.forEach(span => {
@@ -249,7 +451,7 @@
 
             saveToLocalStorage(state);
             hideSettings();
-            updatePlayerInfo();
+            injectFUSEInfoIntoFantasySite();
         });
 
         settingsPanel.appendChild(saveBtn);
@@ -303,8 +505,62 @@
             );
 
             tab.appendChild(prefixField);
-
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
+            if (window.GM?.info) {
+                const dataSettings = document.createElement('div');
+                dataSettings.style.display = 'flex';
+                dataSettings.style.justifyContent = 'space-between';
+                dataSettings.style.marginBottom = '10px';
+
+                const scoringField = createDropdownField(
+                    'Scoring',
+                    `${selectors.settingPanel.borisChen}_scoring`,
+                    ['Standard', '0.5 PPR', 'PPR'],
+                    savedData.scoring
+                );
+
+                const autoFetchField = createDropdownField(
+                    'AutoFetch',
+                    `${selectors.settingPanel.borisChen}_autoFetch`,
+                    ['Never', 'Daily'],
+                    savedData.autoFetch
+                );
+
+                autoFetchField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
+
+                const lastFetchedDateTime = formatTimestamp(savedData.lastFetched)
+
+                const lastFetchedField = makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
+                lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
+
+                const fetchDataBtn = makeButton('Fetch', async () => {
+                    const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
+                    self.disabled = true;
+                    const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
+                    const rawData = await fetchDataFromBorisChenWebsite(scoring);
+                    self.disabled = false;
+                    const lastFetchedTimestamp = Date.now()
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = formatTimestamp(lastFetchedTimestamp);
+
+                    lastFetchedField.style.visibility = 'visible';
+                    autoFetchField.style.visibility = 'visible';
+
+                    for (const position of positions) {
+                        let positionInput = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`);
+                        positionInput.value = rawData[position];
+                    }
+                });
+                fetchDataBtn.id = `${selectors.settingPanel.borisChen}_fetchDataBtn`;
+
+
+                dataSettings.appendChild(scoringField);
+                dataSettings.appendChild(autoFetchField);
+                dataSettings.appendChild(lastFetchedField);
+
+                tab.appendChild(dataSettings);
+                tab.appendChild(fetchDataBtn);
+            }
 
             for (const position of positions) {
                 const positionField = makeTextAreaField(
@@ -322,7 +578,10 @@
         function getBorischenFormData() {
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value
+                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value,
+                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value,
+                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`).value,
+                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).getAttribute('data-state')
             };
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
@@ -332,71 +591,6 @@
             }
 
             return data;
-        }
-
-        function parseBorischenRawData(rawTierData) {
-            const players = {};
-
-            parseTierInfo(rawTierData.QB, players);
-            parseTierInfo(rawTierData.RB, players);
-            parseTierInfo(rawTierData.WR, players);
-            parseTierInfo(rawTierData.TE, players);
-            parseTierInfo(rawTierData.FLEX, players);
-            parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
-            parseTierInfo(rawTierData.K, players);
-
-            return players;
-
-            function parseTierInfo(raw, playerDictionary) {
-                if (!raw) {
-                    return
-                }
-
-                const tiers = raw.split('\n');
-
-                tiers.forEach(tierRow => {
-                    const row = tierRow.split(': ');
-                    const tier = row[0].replace('Tier ', '');
-                    const players = row[1];
-
-                    players?.split(', ').forEach((player, index) => {
-                        addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
-                    });
-                });
-
-                return playerDictionary;
-            }
-
-            function splitUpDSTByPlatform(raw) {
-                if (!raw) {
-                    return;
-                }
-
-                const tiers = raw.split('\n');
-                const output = [];
-
-                tiers.forEach(tierRow => {
-                    const row = tierRow.split(': ');
-                    const tier = row[0];
-                    const teams = row[1];
-                    let rowOutput = `${tier}: `;
-
-                    teams?.split(', ').forEach((team, index) => {
-                        // Team name is the last word
-                        const teamName = team.split(' ').pop();
-
-                        if (index !== 0) {
-                            rowOutput += `, `;
-                        }
-
-                        rowOutput += `${teamName}`;
-                    });
-
-                    output.push(rowOutput);
-                });
-
-                return output.join('\n');
-            }
         }
 
         function createSubvertADownTab(savedData) {
@@ -570,7 +764,7 @@
                 const columns = line.split(delimiters[savedData.delimiter]);
                 const playerName = columns[savedData.playerColumn - 1];
                 if (!playerName) continue;
-                
+
                 let restOfData = [];
 
                 if (savedData.displayColumn === 'All') {
@@ -585,45 +779,7 @@
             return players;
         }
 
-        function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
-            const playerName = player.replace(' III', '').replace(' II', '');
-            let infoToSave = playerDictionary[playerName]
 
-            if (infoToSave) {
-                infoToSave += `|${newInfo}`;
-            } else {
-                infoToSave = newInfo;
-            }
-
-            const distNames = DSTNames[playerName] || [];
-
-            if (distNames.length) {
-                distNames.forEach(distName => {
-                    playerDictionary[distName] = infoToSave;
-                });
-
-                return playerDictionary;
-            }
-
-            playerDictionary[playerName] = infoToSave;
-            playerDictionary[player] = infoToSave; // some sites do use the II/III name
-
-            const [first, ...rest] = playerName.split(' ');
-
-            // Some sites truncate player names on some, but not all pages
-            // ie Christian McCaffrey is sometimes shown as C. McCaffrey
-            // storing both the long and short name allows the playerDictionary lookup
-            // to work on all pages
-
-            const shortName = `${first[0]}. ${rest.join(' ')}`
-            playerDictionary[shortName] = infoToSave;
-
-            // Sleeper shows Christian McCaffrey as C McCaffrey
-            const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
-            playerDictionary[shortNameWithoutPeriod] = infoToSave;
-
-            return playerDictionary;
-        }
 
         function hideAllTabs() {
             const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
@@ -656,7 +812,10 @@
             data: {
                 borisChen: {
                     raw: {},
-                    parsed: {}
+                    parsed: {},
+                    scoring: 'Standard',
+                    autoFetch: 'Daily',
+                    lastFetched: ''
                 },
                 subvertADown: {
                     raw: {},
@@ -773,6 +932,21 @@
         return label;
     }
 
+    function makeReadOnlyField(labelText, id, value, state) {
+        const field = document.createElement('div');
+        const label = makeLabelElement(labelText);
+        const displayValue = document.createElement('span');
+        displayValue.id = id;
+        displayValue.setAttribute('data-state', state);
+        displayValue.style.marginBottom = '10px';
+        displayValue.textContent = value;
+
+        field.appendChild(label);
+        field.appendChild(displayValue);
+
+        return field;
+    }
+
     function makeInputField(labelText, id, placeholder, value,) {
         const field = document.createElement('div');
         const label = makeLabelElement(labelText)
@@ -837,9 +1011,25 @@
 
         return field;
     }
+    function formatTimestamp(timestamp) {
+        const date = new Date(parseInt(timestamp, 10));
+
+        if (isNaN(date.getTime())) {
+            return '';
+        }
+
+        // Extracting the date in YYYY/MM/DD format
+        const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+        const formattedDate = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+
+        // Extracting the time in 12-hour format with AM/PM
+        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+        const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date).toLowerCase();  // Convert to lowercase to get "am/pm"
+
+        return `${formattedDate} @ ${formattedTime}`;
+    }
 
     function runAutoUpdate() {
-
         if (window.fuse?.autoUpdateObserver) {
             window.fuse.autoUpdateObserver.disconnect();
         } else {
@@ -853,7 +1043,7 @@
             // avoids an infinite loop of updates
             observer.disconnect();
 
-            updatePlayerInfo();
+            injectFUSEInfoIntoFantasySite();
 
             // resume monitoring for mutations
             observer.observe(document.body, {
