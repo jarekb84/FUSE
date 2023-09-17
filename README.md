@@ -56,10 +56,12 @@ At this time, this is just a bit of javascript, so you can either copy the fuse.
 ### User Script manager
 
 - Install [Greasemonkey](https://www.greasespot.net/) (FireFox only) or [TamperMonkey](http://tampermonkey.net) or [ViolentMonkey](https://violentmonkey.github.io/get-it) for your browser
-- Go to the [user script](https://greasyfork.org/en/scripts/475542-fuse) page
-- Your script manager should prompt you to install script
+- Go to one of these user script hosts
+  -  [FUSE on GreasyFork](https://greasyfork.org/en/scripts/475542-fuse)
+  -  [FUSE on OpenUserJS](https://openuserjs.org/scripts/Dison/FUSE)
+- Your user script extension should prompt you to install the FUSE user script
 - Once installed, refresh page
-- You can configure your script manager to check for updates
+- You can configure your user script extension to automatically check for updates
 
 ### Bookmarklet
 This is a bookmark where instead of a URL, it runs a bit of javascript to fetch the FUSE.js file and execute it.
