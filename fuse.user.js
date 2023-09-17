@@ -4,7 +4,7 @@
 // @version     VERSION_PLACEHOLDER
 // @author      Jerry Batorski
 // @license     Apache-2.0
-// @description FUSE easily integrates BorisChen tiers, SubvertADown streaming values, and custom table data (from both websites and spreadsheets) directly into your preferred fantasy platform.
+// @description FUSE (Fantasy User Stat Enhancer) easily integrates BorisChen tiers, SubvertADown streaming values, and your own data directly into your preferred fantasy platform to simplify roster selection, free agent scouting, and trade evaluations.
 // @grant       GM.xmlHttpRequest
 // @match       https://fantasy.espn.com/*
 // @match       https://fantasy.nfl.com/*
