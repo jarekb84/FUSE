@@ -27,6 +27,7 @@
         },
         localStorage: 'fuseStorage'
     }
+    const dom = makeDOMModule();
 
     const DSTNames = getDSTNames();
     await runBorisChenAutoUpdate();
@@ -402,7 +403,7 @@
         }
     }
 
-    makePageButton(selectors.showSettingsBtn, '⚙', 100, editSettings);
+    dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, editSettings);
 
     function editSettings() {
         if (document.getElementById(selectors.settingPanel.name)) {
@@ -416,17 +417,17 @@
 
         const borisChenTab = createBorisChenTab(savedData.borisChen)
 
-        const toggleBorisChenTab = makeButton('BorisChen', () => {
+        const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
             toggleTabs(borisChenTab.id)
         });
 
         const subvertADownTab = createSubvertADownTab(savedData.subvertADown);
-        const toggleSubvertADownTab = makeButton('SubvertADown', () => {
+        const toggleSubvertADownTab = dom.makeButton('SubvertADown', () => {
             toggleTabs(subvertADownTab.id)
         });
 
         const customDataTab = createCustomDataTab(savedData.customData);
-        const toggleCustomData = makeButton('CustomData', () => {
+        const toggleCustomData = dom.makeButton('CustomData', () => {
             toggleTabs(customDataTab.id)
         });
         settingsPanel.appendChild(toggleBorisChenTab);
@@ -436,7 +437,7 @@
         settingsPanel.appendChild(subvertADownTab);
         settingsPanel.appendChild(customDataTab);
 
-        const saveBtn = makeButton('Save', () => {
+        const saveBtn = dom.makeButton('Save', () => {
             let state = getStoredData();
 
             state.data.borisChen = { ...state.data.borisChen, ...getBorischenFormData() };
@@ -454,7 +455,7 @@
         });
 
         settingsPanel.appendChild(saveBtn);
-        settingsPanel.appendChild(makeButton('Hide', hideSettings));
+        settingsPanel.appendChild(dom.makeButton('Hide', hideSettings));
         settingsPanel.appendChild(createVersionElement());
 
         document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
@@ -491,12 +492,12 @@
         }
 
         function createBorisChenTab(savedData) {
-            const tab = makeTabElement(
+            const tab = dom.makeTabElement(
                 selectors.settingPanel.borisChen,
                 "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
             );
 
-            const prefixField = makeInputField(
+            const prefixField = dom.makeInputField(
                 'Prefix (optional)',
                 `${selectors.settingPanel.borisChen}_prefix`,
                 'Ex: BC',
@@ -511,14 +512,14 @@
                 dataSettings.style.justifyContent = 'space-between';
                 dataSettings.style.marginBottom = '10px';
 
-                const scoringField = createDropdownField(
+                const scoringField = dom.makeDropdownField(
                     'Scoring',
                     `${selectors.settingPanel.borisChen}_scoring`,
                     ['Standard', '0.5 PPR', 'PPR'],
                     savedData.scoring
                 );
 
-                const autoFetchField = createDropdownField(
+                const autoFetchField = dom.makeDropdownField(
                     'AutoFetch',
                     `${selectors.settingPanel.borisChen}_autoFetch`,
                     ['Never', 'Daily'],
@@ -529,10 +530,10 @@
 
                 const lastFetchedDateTime = formatTimestamp(savedData.lastFetched)
 
-                const lastFetchedField = makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
+                const lastFetchedField = dom.makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
                 lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
-                const fetchDataBtn = makeButton('Fetch', async () => {
+                const fetchDataBtn = dom.makeButton('Fetch', async () => {
                     const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
                     self.disabled = true;
                     const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
@@ -562,7 +563,7 @@
             }
 
             for (const position of positions) {
-                const positionField = makeTextAreaField(
+                const positionField = dom.makeTextAreaField(
                     position,
                     `${selectors.settingPanel.borisChen}_${position}`,
                     savedData.raw[position],
@@ -593,12 +594,12 @@
         }
 
         function createSubvertADownTab(savedData) {
-            const tab = makeTabElement(
+            const tab = dom.makeTabElement(
                 selectors.settingPanel.subvertADown,
                 "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
             );
 
-            const prefixField = makeInputField(
+            const prefixField = dom.makeInputField(
                 'Prefix (optional)',
                 `${selectors.settingPanel.subvertADown}_prefix`,
                 'Ex: SD',
@@ -610,7 +611,7 @@
             const positions = ['DST', 'QB', 'K'];
 
             for (const position of positions) {
-                const positionField = makeTextAreaField(
+                const positionField = dom.makeTextAreaField(
                     position,
                     `${selectors.settingPanel.subvertADown}_${position}`,
                     savedData.raw[position],
@@ -676,12 +677,12 @@
         }
 
         function createCustomDataTab(savedData) {
-            const tab = makeTabElement(
+            const tab = dom.makeTabElement(
                 selectors.settingPanel.customData,
                 "Paste in your own data from a spreadsheet or another website."
             );
 
-            const prefixField = makeInputField(
+            const prefixField = dom.makeInputField(
                 'Prefix (optional)',
                 `${selectors.settingPanel.customData}_prefix`,
                 'Ex: C',
@@ -694,7 +695,7 @@
             dataSettings.style.justifyContent = 'space-between';
             dataSettings.style.marginBottom = '10px';
 
-            const delimiterField = createDropdownField(
+            const delimiterField = dom.makeDropdownField(
                 'Delimiter',
                 `${selectors.settingPanel.customData}_delimiter`,
                 ['Tab', 'Space', 'Comma'],
@@ -702,7 +703,7 @@
             );
             dataSettings.appendChild(delimiterField);
 
-            const playerColumnField = createDropdownField(
+            const playerColumnField = dom.makeDropdownField(
                 'Player Column',
                 `${selectors.settingPanel.customData}_playerColumn`,
                 Array(20).fill().map((_, i) => i + 1),
@@ -710,7 +711,7 @@
             );
             dataSettings.appendChild(playerColumnField);
 
-            const displayColumnField = createDropdownField(
+            const displayColumnField = dom.makeDropdownField(
                 'Display Columns',
                 `${selectors.settingPanel.customData}_displayColumn`,
                 ['All', ...Array(20).fill().map((_, i) => i + 1)],
@@ -720,7 +721,7 @@
 
             tab.appendChild(dataSettings);
 
-            const positionField = makeTextAreaField(
+            const positionField = dom.makeTextAreaField(
                 'Custom',
                 `${selectors.settingPanel.customData}_custom`,
                 savedData.raw['custom'],
@@ -865,151 +866,6 @@
         return mergeDeep(target, ...sources);
     }
 
-    function makePageButton(id, text, offset, onClick) {
-        const existingBtn = document.getElementById(id);
-
-        if (document.contains(existingBtn)) {
-            existingBtn.remove();
-        }
-
-        const button = makeButton(text, onClick);
-        button.id = id;
-
-        button.style.position = 'fixed';
-        button.style.top = `${offset}px`;
-        button.style.right = 0;
-        button.style.color = 'green';
-        button.style.zIndex = '9999999';
-        button.style.fontSize = '16px';
-        button.style.padding = '1px 6px';
-        button.style.marginRight = '0';
-
-        const body = document.getElementsByTagName('body')[0];
-
-        body.appendChild(button);
-
-        return button;
-    }
-
-    function makeButton(text, onClick) {
-        const button = document.createElement('button');
-
-        button.innerHTML = text;
-        button.style.padding = '5px';
-        button.style.marginRight = '5px';
-        button.style.backgroundColor = 'lightgray';
-        button.style.border = '1px solid black';
-        button.style.borderRadius = '5px';
-        button.style.cursor = 'pointer';
-        button.addEventListener('click', onClick);
-
-        return button;
-    }
-
-    function makeTabElement(id, content) {
-        const tab = document.createElement('div');
-        tab.id = id;
-        tab.className = selectors.settingPanel.tabs;
-        tab.style.padding = '10px';
-        tab.style.maxHeight = '70vh';
-        tab.style.overflowY = 'auto';
-
-        const helpText = document.createElement('p');
-        helpText.textContent = content;
-        helpText.style.marginBottom = '10px';
-
-        tab.appendChild(helpText);
-
-        return tab;
-    }
-
-    function makeLabelElement(text) {
-        const label = document.createElement('label');
-        label.textContent = text;
-        label.style.display = 'block';
-
-        return label;
-    }
-
-    function makeReadOnlyField(labelText, id, value, state) {
-        const field = document.createElement('div');
-        const label = makeLabelElement(labelText);
-        const displayValue = document.createElement('span');
-        displayValue.id = id;
-        displayValue.setAttribute('data-state', state);
-        displayValue.style.marginBottom = '10px';
-        displayValue.textContent = value;
-
-        field.appendChild(label);
-        field.appendChild(displayValue);
-
-        return field;
-    }
-
-    function makeInputField(labelText, id, placeholder, value,) {
-        const field = document.createElement('div');
-        const label = makeLabelElement(labelText)
-
-        const input = document.createElement('input');
-        input.id = id;
-        input.placeholder = placeholder;
-        input.value = value || '';
-        input.style.marginBottom = '10px';
-        input.style.backgroundColor = 'white';
-        input.style.border = '1px solid black';
-        input.style.padding = '3px';
-
-        field.appendChild(label);
-        field.appendChild(input);
-
-        return field;
-    }
-
-    function makeTextAreaField(labelText, id, value = '', { width = '350px', height = '60px', placeholder = '' } = {}) {
-        const field = document.createElement('div');
-        const label = makeLabelElement(labelText);
-
-        const textarea = document.createElement('textarea');
-        textarea.id = id;
-        textarea.value = value;
-        textarea.style.width = width;
-        textarea.style.height = height;
-        textarea.style.marginBottom = '10px';
-        textarea.style.backgroundColor = 'white';
-        textarea.style.border = '1px solid black';
-        textarea.style.padding = '3px';
-        textarea.placeholder = placeholder;
-
-        field.appendChild(label);
-        field.appendChild(textarea);
-
-        return field;
-    }
-
-    function createDropdownField(labelText, id, options, selectedValue) {
-        const field = document.createElement('div');
-        const label = makeLabelElement(labelText);
-        field.appendChild(label);
-
-        const selectElement = document.createElement('select');
-        selectElement.id = id;
-
-        options.forEach((option) => {
-            const optionElement = document.createElement('option');
-            optionElement.value = option;
-            optionElement.textContent = option;
-
-            if (option.toString() === selectedValue.toString()) {
-                optionElement.selected = true;
-            }
-
-            selectElement.appendChild(optionElement);
-        });
-
-        field.appendChild(selectElement);
-
-        return field;
-    }
     function formatTimestamp(timestamp) {
         const date = new Date(parseInt(timestamp, 10));
 
@@ -1026,6 +882,166 @@
         const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date).toLowerCase();  // Convert to lowercase to get "am/pm"
 
         return `${formattedDate} @ ${formattedTime}`;
+    }
+
+    function makeDOMModule() {
+
+        return {
+            makePageButton,
+            makeButton,
+            makeTabElement,
+            makeLabelElement,
+            makeReadOnlyField,
+            makeInputField,
+            makeTextAreaField,
+            makeDropdownField
+        }
+
+        function makePageButton(id, text, offset, onClick) {
+            const existingBtn = document.getElementById(id);
+
+            if (document.contains(existingBtn)) {
+                existingBtn.remove();
+            }
+
+            const button = makeButton(text, onClick);
+            button.id = id;
+
+            button.style.position = 'fixed';
+            button.style.top = `${offset}px`;
+            button.style.right = 0;
+            button.style.color = 'green';
+            button.style.zIndex = '9999999';
+            button.style.fontSize = '16px';
+            button.style.padding = '1px 6px';
+            button.style.marginRight = '0';
+
+            const body = document.getElementsByTagName('body')[0];
+
+            body.appendChild(button);
+
+            return button;
+        }
+
+        function makeButton(text, onClick) {
+            const button = document.createElement('button');
+
+            button.innerHTML = text;
+            button.style.padding = '5px';
+            button.style.marginRight = '5px';
+            button.style.backgroundColor = 'lightgray';
+            button.style.border = '1px solid black';
+            button.style.borderRadius = '5px';
+            button.style.cursor = 'pointer';
+            button.addEventListener('click', onClick);
+
+            return button;
+        }
+
+        function makeTabElement(id, content) {
+            const tab = document.createElement('div');
+            tab.id = id;
+            tab.className = selectors.settingPanel.tabs;
+            tab.style.padding = '10px';
+            tab.style.maxHeight = '70vh';
+            tab.style.overflowY = 'auto';
+
+            const helpText = document.createElement('p');
+            helpText.textContent = content;
+            helpText.style.marginBottom = '10px';
+
+            tab.appendChild(helpText);
+
+            return tab;
+        }
+
+        function makeLabelElement(text) {
+            const label = document.createElement('label');
+            label.textContent = text;
+            label.style.display = 'block';
+
+            return label;
+        }
+
+        function makeReadOnlyField(labelText, id, value, state) {
+            const field = document.createElement('div');
+            const label = makeLabelElement(labelText);
+            const displayValue = document.createElement('span');
+            displayValue.id = id;
+            displayValue.setAttribute('data-state', state);
+            displayValue.style.marginBottom = '10px';
+            displayValue.textContent = value;
+
+            field.appendChild(label);
+            field.appendChild(displayValue);
+
+            return field;
+        }
+
+        function makeInputField(labelText, id, placeholder, value,) {
+            const field = document.createElement('div');
+            const label = makeLabelElement(labelText)
+
+            const input = document.createElement('input');
+            input.id = id;
+            input.placeholder = placeholder;
+            input.value = value || '';
+            input.style.marginBottom = '10px';
+            input.style.backgroundColor = 'white';
+            input.style.border = '1px solid black';
+            input.style.padding = '3px';
+
+            field.appendChild(label);
+            field.appendChild(input);
+
+            return field;
+        }
+
+        function makeTextAreaField(labelText, id, value = '', { width = '350px', height = '60px', placeholder = '' } = {}) {
+            const field = document.createElement('div');
+            const label = makeLabelElement(labelText);
+
+            const textarea = document.createElement('textarea');
+            textarea.id = id;
+            textarea.value = value;
+            textarea.style.width = width;
+            textarea.style.height = height;
+            textarea.style.marginBottom = '10px';
+            textarea.style.backgroundColor = 'white';
+            textarea.style.border = '1px solid black';
+            textarea.style.padding = '3px';
+            textarea.placeholder = placeholder;
+
+            field.appendChild(label);
+            field.appendChild(textarea);
+
+            return field;
+        }
+
+        function makeDropdownField(labelText, id, options, selectedValue) {
+            const field = document.createElement('div');
+            const label = makeLabelElement(labelText);
+            field.appendChild(label);
+
+            const selectElement = document.createElement('select');
+            selectElement.id = id;
+
+            options.forEach((option) => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+
+                if (option.toString() === selectedValue.toString()) {
+                    optionElement.selected = true;
+                }
+
+                selectElement.appendChild(optionElement);
+            });
+
+            field.appendChild(selectElement);
+
+            return field;
+        }
     }
 
     function runAutoUpdate() {
