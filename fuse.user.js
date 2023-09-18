@@ -31,6 +31,7 @@
     const utils = makeUtilsModule();
     const borisChen = makeBorisChenModule();
     const customData = makeCustomDataModule();
+    const subvertADown = makeSubvertADownModule();
 
     const DSTNames = getDSTNames();
     await borisChen.runBorisChenAutoUpdate();
@@ -279,7 +280,7 @@
             toggleTabs(borisChenTab.id)
         });
 
-        const subvertADownTab = createSubvertADownTab(savedData.subvertADown);
+        const subvertADownTab = subvertADown.settingsPanel.createSubvertADownTab(savedData.subvertADown);
         const toggleSubvertADownTab = dom.makeButton('SubvertADown', () => {
             toggleTabs(subvertADownTab.id)
         });
@@ -302,8 +303,8 @@
             state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
             state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
 
-            state.data.subvertADown = { ...state.data.borisChen, ...getSubvertADownFormData() };
-            state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
+            state.data.subvertADown = { ...state.data.borisChen, ...subvertADown.settingsPanel.getSubvertADownFormData() };
+            state.data.subvertADown.parsed = subvertADown.settingsPanel.parseSubvertADownFormRawData(state.data.subvertADown.raw);
 
             state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
             state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
@@ -349,90 +350,6 @@
 
             return settingsPanel
         }
-
-        function createSubvertADownTab(savedData) {
-            const tab = dom.makeTabElement(
-                selectors.settingPanel.subvertADown,
-                "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
-            );
-
-            const prefixField = dom.makeInputField(
-                'Prefix (optional)',
-                `${selectors.settingPanel.subvertADown}_prefix`,
-                'Ex: SD',
-                savedData.prefix,
-            );
-
-            tab.appendChild(prefixField);
-
-            const positions = ['DST', 'QB', 'K'];
-
-            for (const position of positions) {
-                const positionField = dom.makeTextAreaField(
-                    position,
-                    `${selectors.settingPanel.subvertADown}_${position}`,
-                    savedData.raw[position],
-                );
-
-                tab.appendChild(positionField);
-            }
-
-            return tab;
-        }
-
-        function getSubvertADownFormData() {
-            const data = {
-                raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.subvertADown}_prefix`).value
-            };
-
-            const positions = ['QB', 'DST', 'K'];
-
-            for (const position of positions) {
-                data.raw[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
-            }
-
-            return data;
-        }
-
-        function parseSubvertADownFormRawData(rawData) {
-            const players = {};
-
-            processData(rawData.DST, players, true);
-            processData(rawData.QB, players);
-            processData(rawData.K, players);
-
-            return players;
-
-            function processData(input, players, isDST) {
-                const lines = input.trim().split('\n');
-
-                let player = '';
-                lines.forEach(line => {
-                    // skip blank lines
-                    if (!line.trim()) {
-                        return;
-                    }
-
-                    if (!player) {
-                        // first line is player, next line is the value
-                        player = line.split('|')[0].trim();
-
-                        if (isDST) {
-                            player = `${player}`;
-                        }
-                    } else {
-                        addPlayerInfoToDictionary(player, line.trim(), players);
-
-                        // reset for next iteration
-                        player = ''
-                    }
-                })
-
-                return players;
-            }
-        }
-
 
         function hideAllTabs() {
             const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
@@ -495,12 +412,12 @@
         localStorage.setItem(selectors.localStorage, JSON.stringify(data));
     }
 
-    function makeBorisChenModule(){
+    function makeBorisChenModule() {
         // TODO rename functions to remove the redundant borischen term
         return {
             runBorisChenAutoUpdate,
             parseBorischenRawData,
-            settingsPanel:{
+            settingsPanel: {
                 createBorisChenTab,
                 getBorischenFormData,
             }
@@ -512,34 +429,34 @@
             const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
             const ranAsUserScript = !!window.GM?.info
             const eligibleForAutoUpdate = isDaily && hasBeenFetched && ranAsUserScript;
-    
+
             if (!eligibleForAutoUpdate) {
                 return Promise.resolve();
             }
-    
+
             const lastFetched = parseInt(savedData.data.borisChen.lastFetched, 10);
             const currentTime = Date.now();
             const twentyFourHoursInMs = 300000;
-    
+
             const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
-    
+
             if (isBelow24HoursOld) {
                 return Promise.resolve();
             }
-    
+
             const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
             savedData.data.borisChen.raw = rawData;
             savedData.data.borisChen.parsed = parseBorischenRawData(rawData);
             savedData.data.borisChen.lastFetched = Date.now();
-    
+
             saveToLocalStorage(savedData);
-    
+
             return Promise.resolve();
         }
 
         function parseBorischenRawData(rawTierData) {
             const players = {};
-    
+
             parseTierInfo(rawTierData.QB, players);
             parseTierInfo(rawTierData.RB, players);
             parseTierInfo(rawTierData.WR, players);
@@ -547,68 +464,68 @@
             parseTierInfo(rawTierData.FLEX, players);
             parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
             parseTierInfo(rawTierData.K, players);
-    
+
             return players;
-    
+
             function parseTierInfo(raw, playerDictionary) {
                 if (!raw) {
                     return
                 }
-    
+
                 const tiers = raw.split('\n');
-    
+
                 tiers.forEach(tierRow => {
                     const row = tierRow.split(': ');
                     const tier = row[0].replace('Tier ', '');
                     const players = row[1];
-    
+
                     players?.split(', ').forEach((player, index) => {
                         addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
                     });
                 });
-    
+
                 return playerDictionary;
             }
-    
+
             function splitUpDSTByPlatform(raw) {
                 if (!raw) {
                     return;
                 }
-    
+
                 const tiers = raw.split('\n');
                 const output = [];
-    
+
                 tiers.forEach(tierRow => {
                     const row = tierRow.split(': ');
                     const tier = row[0];
                     const teams = row[1];
                     let rowOutput = `${tier}: `;
-    
+
                     teams?.split(', ').forEach((team, index) => {
                         // Team name is the last word
                         const teamName = team.split(' ').pop();
-    
+
                         if (index !== 0) {
                             rowOutput += `, `;
                         }
-    
+
                         rowOutput += `${teamName}`;
                     });
-    
+
                     output.push(rowOutput);
                 });
-    
+
                 return output.join('\n');
             }
         }
-    
+
         async function fetchDataFromBorisChenWebsite(scoring) {
             const scoreSuffix = {
                 "PPR": "-PPR",
                 "0.5 PPR": "-HALF",
                 "Standard": ""
             }
-    
+
             const positionsToGet = [
                 { key: 'QB', val: `QB` },
                 { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
@@ -618,9 +535,9 @@
                 { key: 'K', val: `K` },
                 { key: 'DST', val: `DST` },
             ]
-    
+
             let rawTierData = {};
-    
+
             const promises = positionsToGet.map(position => {
                 return new Promise((resolve, reject) => {
                     GM.xmlHttpRequest({
@@ -644,9 +561,9 @@
                 });
             });
             await Promise.all(promises);
-    
+
             return rawTierData;
-    
+
             function makeUrlString(position) {
                 return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
             }
@@ -755,15 +672,107 @@
         }
     }
 
-    function makeCustomDataModule(){
+    function makeSubvertADownModule() {
         return {
-            settingsPanel :{
-                createCustomDataTab,
-                getCustomDataFormData,
-                parseCustomDataFormData                
+            settingsPanel:{
+                createSubvertADownTab,
+                getSubvertADownFormData,
+                parseSubvertADownFormRawData
             }
         }
-        
+        function createSubvertADownTab(savedData) {
+            const tab = dom.makeTabElement(
+                selectors.settingPanel.subvertADown,
+                "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
+            );
+
+            const prefixField = dom.makeInputField(
+                'Prefix (optional)',
+                `${selectors.settingPanel.subvertADown}_prefix`,
+                'Ex: SD',
+                savedData.prefix,
+            );
+
+            tab.appendChild(prefixField);
+
+            const positions = ['DST', 'QB', 'K'];
+
+            for (const position of positions) {
+                const positionField = dom.makeTextAreaField(
+                    position,
+                    `${selectors.settingPanel.subvertADown}_${position}`,
+                    savedData.raw[position],
+                );
+
+                tab.appendChild(positionField);
+            }
+
+            return tab;
+        }
+
+        function getSubvertADownFormData() {
+            const data = {
+                raw: {},
+                prefix: document.getElementById(`${selectors.settingPanel.subvertADown}_prefix`).value
+            };
+
+            const positions = ['QB', 'DST', 'K'];
+
+            for (const position of positions) {
+                data.raw[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
+            }
+
+            return data;
+        }
+
+        function parseSubvertADownFormRawData(rawData) {
+            const players = {};
+
+            processData(rawData.DST, players, true);
+            processData(rawData.QB, players);
+            processData(rawData.K, players);
+
+            return players;
+
+            function processData(input, players, isDST) {
+                const lines = input.trim().split('\n');
+
+                let player = '';
+                lines.forEach(line => {
+                    // skip blank lines
+                    if (!line.trim()) {
+                        return;
+                    }
+
+                    if (!player) {
+                        // first line is player, next line is the value
+                        player = line.split('|')[0].trim();
+
+                        if (isDST) {
+                            player = `${player}`;
+                        }
+                    } else {
+                        addPlayerInfoToDictionary(player, line.trim(), players);
+
+                        // reset for next iteration
+                        player = ''
+                    }
+                })
+
+                return players;
+            }
+        }
+    }
+
+    function makeCustomDataModule() {
+        return {
+            settingsPanel: {
+                createCustomDataTab,
+                getCustomDataFormData,
+                parseCustomDataFormData
+            }
+        }
+
         function createCustomDataTab(savedData) {
             const tab = dom.makeTabElement(
                 selectors.settingPanel.customData,
