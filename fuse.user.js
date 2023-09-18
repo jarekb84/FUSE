@@ -226,6 +226,7 @@
             const storedData = localStorage.getItem(selectors.localStorage);
             const parsedData = JSON.parse(storedData) || {};
 
+            // TODO these defaults should come from the module definition
             let defaults = {
                 data: {
                     borisChen: {
@@ -474,14 +475,32 @@
 
     function makeBorisChenModule() {
         // TODO rename functions to remove the redundant borischen term
-        return {
+        const self = {
             runBorisChenAutoUpdate,
             parseBorischenRawData,
             settingsPanel: {
                 createBorisChenTab,
                 getBorischenFormData,
+                selectors: {
+                    tab: ui.makeSelector(`${selectors.settingPanel.borisChen}_tab`),
+                    prefix: ui.makeSelector(`${selectors.settingPanel.borisChen}_prefix`),
+                    scoring: ui.makeSelector(`${selectors.settingPanel.borisChen}_scoring`),
+                    autoFetch: ui.makeSelector(`${selectors.settingPanel.borisChen}_autoFetch`),
+                    lastFetched: ui.makeSelector(`${selectors.settingPanel.borisChen}_lastFetched`, 'data-state'),
+                    fetchDataBtn: ui.makeSelector(`${selectors.settingPanel.borisChen}_fetchDataBtn`),
+                    positions: {
+                        id: (position) => `${selectors.settingPanel.borisChen}_${position}`,
+                        get: (position) => document.getElementById(`${selectors.settingPanel.borisChen}_${position}`),
+                        getValue: function (position) {
+                            const el = this.get(position);
+                            return el ? el.value : null;
+                        }
+                    }
+                }
             }
         }
+
+        return self;
 
         async function runBorisChenAutoUpdate() {
             let state = store.getState();
@@ -630,14 +649,15 @@
         }
 
         function createBorisChenTab(savedData) {
+            const { selectors } = self.settingsPanel;
             const tab = dom.makeTabElement(
-                selectors.settingPanel.borisChen,
+                selectors.tab.id,
                 "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
             );
 
             const prefixField = dom.makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.borisChen}_prefix`,
+                selectors.prefix.id,
                 'Ex: BC',
                 savedData.prefix,
             );
@@ -652,14 +672,14 @@
 
                 const scoringField = dom.makeDropdownField(
                     'Scoring',
-                    `${selectors.settingPanel.borisChen}_scoring`,
+                    selectors.scoring.id,
                     ['Standard', '0.5 PPR', 'PPR'],
                     savedData.scoring
                 );
 
                 const autoFetchField = dom.makeDropdownField(
                     'AutoFetch',
-                    `${selectors.settingPanel.borisChen}_autoFetch`,
+                    selectors.autoFetch.id,
                     ['Never', 'Daily'],
                     savedData.autoFetch
                 );
@@ -668,29 +688,33 @@
 
                 const lastFetchedDateTime = utils.formatTimestamp(savedData.lastFetched)
 
-                const lastFetchedField = dom.makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
+                const lastFetchedField = dom.makeReadOnlyField(
+                    'Last Fetched',
+                    selectors.autoFetch.id,
+                    lastFetchedDateTime,
+                    savedData.lastFetched
+                );
                 lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
                 const fetchDataBtn = dom.makeButton('Fetch', async () => {
-                    const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
-                    self.disabled = true;
-                    const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
+                    const btn = selectors.fetchDataBtn.get();
+                    btn.disabled = true;
+                    const scoring = selectors.scoring.get().value
                     const rawData = await fetchDataFromBorisChenWebsite(scoring);
-                    self.disabled = false;
+                    btn.disabled = false;
                     const lastFetchedTimestamp = Date.now()
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = utils.formatTimestamp(lastFetchedTimestamp);
+                    selectors.lastFetched.setValue(lastFetchedTimestamp)
+                    selectors.lastFetched.get().textContent = utils.formatTimestamp(lastFetchedTimestamp);
 
                     lastFetchedField.style.visibility = 'visible';
                     autoFetchField.style.visibility = 'visible';
 
                     for (const position of positions) {
-                        let positionInput = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`);
+                        let positionInput = selectors.positions.get(position);
                         positionInput.value = rawData[position];
                     }
                 });
-                fetchDataBtn.id = `${selectors.settingPanel.borisChen}_fetchDataBtn`;
-
+                fetchDataBtn.id = selectors.fetchDataBtn.id;
 
                 dataSettings.appendChild(scoringField);
                 dataSettings.appendChild(autoFetchField);
@@ -703,7 +727,7 @@
             for (const position of positions) {
                 const positionField = dom.makeTextAreaField(
                     position,
-                    `${selectors.settingPanel.borisChen}_${position}`,
+                    selectors.positions.id(position),
                     savedData.raw[position],
                 );
 
@@ -714,18 +738,19 @@
         }
 
         function getBorischenFormData() {
+            const { selectors } = self.settingsPanel;
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`)?.value,
-                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`)?.value,
-                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`)?.value,
-                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`)?.getAttribute('data-state')
+                prefix: selectors.prefix.getValue(),
+                scoring: selectors.scoring.getValue(),
+                autoFetch: selectors.autoFetch.getValue(),
+                lastFetched: selectors.lastFetched.getValue()
             };
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
 
             for (const position of positions) {
-                data.raw[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
+                data.raw[position] = selectors.positions.getValue(position);
             }
 
             return data;
@@ -997,7 +1022,21 @@
             makeReadOnlyField,
             makeInputField,
             makeTextAreaField,
-            makeDropdownField
+            makeDropdownField,
+            makeSelector
+        }
+
+        function makeSelector(idBase, attribute = 'value') {
+            return {
+                id: `${idBase}`,
+                get: () => document.getElementById(`${idBase}`),
+                getValue: function () {
+                    return this.get() ? this.get()[attribute] : null;
+                },
+                setValue: function (value) {
+                    return this.get().setAttribute(attribute, value);
+                }
+            };
         }
 
         function makePageButton(id, text, offset, onClick) {
