@@ -1,6 +1,6 @@
 {
   "name": "fuse",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "FUSE: Fantasy User Stat Enhancer",
   "main": "fuse.js",
   "repository": {
