@@ -518,6 +518,9 @@
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : null;
+                        },
+                        setValue: function (position, value) {
+                            return this.get().setAttribute(attribute, value);
                         }
                     }
                 }
@@ -714,7 +717,7 @@
 
                 const lastFetchedField = dom.makeReadOnlyField(
                     'Last Fetched',
-                    selectors.autoFetch.id,
+                    selectors.lastFetched.id,
                     lastFetchedDateTime,
                     savedData.lastFetched
                 );
@@ -723,7 +726,7 @@
                 const fetchDataBtn = dom.makeButton('Fetch', async () => {
                     const btn = selectors.fetchDataBtn.get();
                     btn.disabled = true;
-                    const scoring = selectors.scoring.get().value
+                    const scoring = selectors.scoring.getValue();
                     const rawData = await fetchDataFromBorisChenWebsite(scoring);
                     btn.disabled = false;
                     const lastFetchedTimestamp = Date.now()
@@ -734,10 +737,10 @@
                     autoFetchField.style.visibility = 'visible';
 
                     for (const position of positions) {
-                        let positionInput = selectors.positions.get(position);
-                        positionInput.value = rawData[position];
+                        selectors.positions.setValue(position, rawData[position]);                        
                     }
                 });
+                // TODO move this into the makeButton method
                 fetchDataBtn.id = selectors.fetchDataBtn.id;
 
                 dataSettings.appendChild(scoringField);
