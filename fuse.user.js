@@ -34,6 +34,7 @@
     const customData = makeCustomDataModule();
     const subvertADown = makeSubvertADownModule();
     const players = makePlayersModule();
+    const store = makeStoreModule();
 
     const DSTNames = players.getDSTNames();
     await borisChen.runBorisChenAutoUpdate();
@@ -46,7 +47,7 @@
             span.remove();
         });
 
-        const data = getStoredData().data;
+        const state = store.getState().data;
 
         if (window.location.host === 'fantasy.espn.com') {
             updateESPNPlayerInfo();
@@ -146,19 +147,19 @@
 
             const playerName = name.replace(' D/ST', '')
 
-            const borisChenTier = data.borisChen.parsed[playerName];
-            const subvertADownValue = data.subvertADown.parsed[playerName];
-            const customDataValue = data.customData.parsed[playerName];
+            const borisChenTier = state.borisChen.parsed[playerName];
+            const subvertADownValue = state.subvertADown.parsed[playerName];
+            const customDataValue = state.customData.parsed[playerName];
 
             if (borisChenTier) {
-                info.push(`${data.borisChen.prefix || ''}${borisChenTier}`)
+                info.push(`${state.borisChen.prefix || ''}${borisChenTier}`)
             }
             if (subvertADownValue) {
-                info.push(`${data.subvertADown.prefix || ''}${subvertADownValue}`)
+                info.push(`${state.subvertADown.prefix || ''}${subvertADownValue}`)
             }
 
             if (customDataValue) {
-                info.push(`${data.customData.prefix || ''}${customDataValue}`)
+                info.push(`${state.customData.prefix || ''}${customDataValue}`)
             }
 
             return info.join('/');
@@ -178,42 +179,48 @@
 
     dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, settings.editSettings);
 
-    function getStoredData() {
-        const storedData = localStorage.getItem(selectors.localStorage);
-        const parsedData = JSON.parse(storedData) || {};
+    function makeStoreModule() {
+        return {
+            getState,
+            saveState
+        }
+        function getState() {
+            const storedData = localStorage.getItem(selectors.localStorage);
+            const parsedData = JSON.parse(storedData) || {};
 
-        let defaults = {
-            data: {
-                borisChen: {
-                    raw: {},
-                    parsed: {},
-                    scoring: 'Standard',
-                    autoFetch: 'Daily',
-                    lastFetched: ''
-                },
-                subvertADown: {
-                    raw: {},
-                    parsed: {}
-                },
-                customData: {
-                    raw: {},
-                    parsed: {},
-                    delimiter: 'Tab',
-                    playerColumn: 1,
-                    displayColumn: 'All'
+            let defaults = {
+                data: {
+                    borisChen: {
+                        raw: {},
+                        parsed: {},
+                        scoring: 'Standard',
+                        autoFetch: 'Daily',
+                        lastFetched: ''
+                    },
+                    subvertADown: {
+                        raw: {},
+                        parsed: {}
+                    },
+                    customData: {
+                        raw: {},
+                        parsed: {},
+                        delimiter: 'Tab',
+                        playerColumn: 1,
+                        displayColumn: 'All'
+                    }
                 }
-            }
-        };
+            };
 
-        const result = utils.mergeDeep(defaults, parsedData)
+            const result = utils.mergeDeep(defaults, parsedData)
 
-        console.log(result)
+            console.log(result)
 
-        return result;
-    }
+            return result;
+        }
 
-    function saveToLocalStorage(data) {
-        localStorage.setItem(selectors.localStorage, JSON.stringify(data));
+        function saveState(data) {
+            localStorage.setItem(selectors.localStorage, JSON.stringify(data));
+        }
     }
 
     function makePlayersModule() {
@@ -225,43 +232,43 @@
         function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
             const playerName = player.replace(' III', '').replace(' II', '');
             let infoToSave = playerDictionary[playerName]
-    
+
             if (infoToSave) {
                 infoToSave += `|${newInfo}`;
             } else {
                 infoToSave = newInfo;
             }
-    
+
             const distNames = DSTNames[playerName] || [];
-    
+
             if (distNames.length) {
                 distNames.forEach(distName => {
                     playerDictionary[distName] = infoToSave;
                 });
-    
+
                 return playerDictionary;
             }
-    
+
             playerDictionary[playerName] = infoToSave;
             playerDictionary[player] = infoToSave; // some sites do use the II/III name
-    
+
             const [first, ...rest] = playerName.split(' ');
-    
+
             // Some sites truncate player names on some, but not all pages
             // ie Christian McCaffrey is sometimes shown as C. McCaffrey
             // storing both the long and short name allows the playerDictionary lookup
             // to work on all pages
-    
+
             const shortName = `${first[0]}. ${rest.join(' ')}`
             playerDictionary[shortName] = infoToSave;
-    
+
             // Sleeper shows Christian McCaffrey as C McCaffrey
             const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
             playerDictionary[shortNameWithoutPeriod] = infoToSave;
-    
+
             return playerDictionary;
         }
-    
+
         function getDSTNames() {
             const teamNames = {
                 '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
@@ -297,15 +304,15 @@
                 'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
                 'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
             }
-    
+
             let dynamicTeamNames = {};
-    
+
             Object.values(teamNames).forEach(teamNamePermutations => {
                 teamNamePermutations.forEach(teamName => {
                     dynamicTeamNames[teamName] = teamNamePermutations;
                 })
             });
-    
+
             return dynamicTeamNames;
         }
     }
@@ -323,21 +330,21 @@
             }
 
             let settingsPanel = createMainSettingsPanel();
-            const savedData = getStoredData().data
+            const state = store.getState().data
 
-            const borisChenTab = borisChen.settingsPanel.createBorisChenTab(savedData.borisChen)
+            const borisChenTab = borisChen.settingsPanel.createBorisChenTab(state.borisChen)
 
             // TODO move this inside the module definition...maybe
             const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
                 toggleTabs(borisChenTab.id)
             });
 
-            const subvertADownTab = subvertADown.settingsPanel.createSubvertADownTab(savedData.subvertADown);
+            const subvertADownTab = subvertADown.settingsPanel.createSubvertADownTab(state.subvertADown);
             const toggleSubvertADownTab = dom.makeButton('SubvertADown', () => {
                 toggleTabs(subvertADownTab.id)
             });
 
-            const customDataTab = customData.settingsPanel.createCustomDataTab(savedData.customData);
+            const customDataTab = customData.settingsPanel.createCustomDataTab(state.customData);
             const toggleCustomData = dom.makeButton('CustomData', () => {
                 toggleTabs(customDataTab.id)
             });
@@ -350,7 +357,7 @@
 
             const saveBtn = dom.makeButton('Save', () => {
                 // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
-                let state = getStoredData();
+                let state = store.getState();
 
                 state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
                 state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
@@ -361,7 +368,7 @@
                 state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
                 state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
 
-                saveToLocalStorage(state);
+                store.saveState(state);
                 hideSettings();
                 injectFUSEInfoIntoFantasySite();
             });
@@ -439,9 +446,9 @@
         }
 
         async function runBorisChenAutoUpdate() {
-            let savedData = getStoredData();
-            const isDaily = savedData.data.borisChen.autoFetch === 'Daily';
-            const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
+            let state = store.getState();
+            const isDaily = state.data.borisChen.autoFetch === 'Daily';
+            const hasBeenFetched = !!state.data.borisChen.lastFetched;
             const ranAsUserScript = !!window.GM?.info
             const eligibleForAutoUpdate = isDaily && hasBeenFetched && ranAsUserScript;
 
@@ -449,7 +456,7 @@
                 return Promise.resolve();
             }
 
-            const lastFetched = parseInt(savedData.data.borisChen.lastFetched, 10);
+            const lastFetched = parseInt(state.data.borisChen.lastFetched, 10);
             const currentTime = Date.now();
             const twentyFourHoursInMs = 300000;
 
@@ -459,12 +466,12 @@
                 return Promise.resolve();
             }
 
-            const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
-            savedData.data.borisChen.raw = rawData;
-            savedData.data.borisChen.parsed = parseBorischenRawData(rawData);
-            savedData.data.borisChen.lastFetched = Date.now();
+            const rawData = await fetchDataFromBorisChenWebsite(state.data.borisChen.scoring);
+            state.data.borisChen.raw = rawData;
+            state.data.borisChen.parsed = parseBorischenRawData(rawData);
+            state.data.borisChen.lastFetched = Date.now();
 
-            saveToLocalStorage(savedData);
+            store.saveState(state);
 
             return Promise.resolve();
         }
