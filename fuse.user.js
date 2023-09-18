@@ -29,100 +29,15 @@
     }
     const dom = makeDOMModule();
     const utils = makeUtilsModule();
+    const settings = makeSettingsModule();
     const borisChen = makeBorisChenModule();
     const customData = makeCustomDataModule();
     const subvertADown = makeSubvertADownModule();
+    const players = makePlayersModule();
 
-    const DSTNames = getDSTNames();
+    const DSTNames = players.getDSTNames();
     await borisChen.runBorisChenAutoUpdate();
     runAutoUpdate();
-
-    function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
-        const playerName = player.replace(' III', '').replace(' II', '');
-        let infoToSave = playerDictionary[playerName]
-
-        if (infoToSave) {
-            infoToSave += `|${newInfo}`;
-        } else {
-            infoToSave = newInfo;
-        }
-
-        const distNames = DSTNames[playerName] || [];
-
-        if (distNames.length) {
-            distNames.forEach(distName => {
-                playerDictionary[distName] = infoToSave;
-            });
-
-            return playerDictionary;
-        }
-
-        playerDictionary[playerName] = infoToSave;
-        playerDictionary[player] = infoToSave; // some sites do use the II/III name
-
-        const [first, ...rest] = playerName.split(' ');
-
-        // Some sites truncate player names on some, but not all pages
-        // ie Christian McCaffrey is sometimes shown as C. McCaffrey
-        // storing both the long and short name allows the playerDictionary lookup
-        // to work on all pages
-
-        const shortName = `${first[0]}. ${rest.join(' ')}`
-        playerDictionary[shortName] = infoToSave;
-
-        // Sleeper shows Christian McCaffrey as C McCaffrey
-        const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
-        playerDictionary[shortNameWithoutPeriod] = infoToSave;
-
-        return playerDictionary;
-    }
-
-    function getDSTNames() {
-        const teamNames = {
-            '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
-            'Bears': ['Bears', 'Chicago', 'Chicago Bears', 'Chicago. Bears', 'CHI'],
-            'Bengals': ['Bengals', 'Cincinnati', 'Cincinnati Bengals', 'Cincinnati. Bengals', 'CIN'],
-            'Bills': ['Bills', 'Buffalo', 'Buffalo Bills', 'Buffalo. Bills', 'BUF'],
-            'Broncos': ['Broncos', 'Denver', 'Denver Broncos', 'Denver. Broncos', 'DEN'],
-            'Browns': ['Browns', 'Cleveland', 'Cleveland Browns', 'Cleveland. Browns', 'CLE'],
-            'Buccaneers': ['Buccaneers', 'Tampa Bay', 'Tampa Bay Buccaneers', 'Tampa Bay. Buccaneers', 'TB'],
-            'Cardinals': ['Cardinals', 'Arizona', 'Arizona Cardinals', 'Arizona. Cardinals', 'ARI'],
-            'Chargers': ['Chargers', 'Los Angeles', 'Los Angeles Chargers', 'Los Angeles. Chargers', 'LAC'],
-            'Chiefs': ['Chiefs', 'Kansas City', 'Kansas City Chiefs', 'Kansas City. Chiefs', 'KC'],
-            'Colts': ['Colts', 'Indianapolis', 'Indianapolis Colts', 'Indianapolis. Colts', 'IND'],
-            'Commanders': ['Commanders', 'Washington', 'Washington Commanders', 'Washington. Commanders', 'WAS'],
-            'Cowboys': ['Cowboys', 'Dallas', 'Dallas Cowboys', 'Dallas. Cowboys', 'DAL'],
-            'Dolphins': ['Dolphins', 'Miami', 'Miami Dolphins', 'Miami. Dolphins', 'MIA'],
-            'Eagles': ['Eagles', 'Philadelphia', 'Philadelphia Eagles', 'Philadelphia. Eagles', 'PHI'],
-            'Falcons': ['Falcons', 'Atlanta', 'Atlanta Falcons', 'Atlanta. Falcons', 'ATL'],
-            'Giants': ['Giants', 'New York', 'New York Giants', 'New York. Giants', 'NYG'],
-            'Jaguars': ['Jaguars', 'Jacksonville', 'Jacksonville Jaguars', 'Jacksonville. Jaguars', 'JAX'],
-            'Jets': ['Jets', 'New York', 'New York Jets', 'New York. Jets', 'NYJ'],
-            'Lions': ['Lions', 'Detroit', 'Detroit Lions', 'Detroit. Lions', 'DET'],
-            'Packers': ['Packers', 'Green Bay', 'Green Bay Packers', 'Green Bay. Packers', 'GB'],
-            'Panthers': ['Panthers', 'Carolina', 'Carolina Panthers', 'Carolina. Panthers', 'CAR'],
-            'Patriots': ['Patriots', 'New England', 'New England Patriots', 'New England. Patriots', 'NE'],
-            'Raiders': ['Raiders', 'Las Vegas', 'Las Vegas Raiders', 'Las Vegas. Raiders', 'LV'],
-            'Rams': ['Rams', 'Los Angeles', 'Los Angeles Rams', 'Los Angeles. Rams', 'LA'],
-            'Ravens': ['Ravens', 'Baltimore', 'Baltimore Ravens', 'Baltimore. Ravens', 'BAL'],
-            'Saints': ['Saints', 'New Orleans', 'New Orleans Saints', 'New Orleans. Saints', 'NO'],
-            'Seahawks': ['Seahawks', 'Seattle', 'Seattle Seahawks', 'Seattle. Seahawks', 'SEA'],
-            'Steelers': ['Steelers', 'Pittsburgh', 'Pittsburgh Steelers', 'Pittsburgh. Steelers', 'PIT'],
-            'Texans': ['Texans', 'Houston', 'Houston Texans', 'Houston. Texans', 'HOU'],
-            'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
-            'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
-        }
-
-        let dynamicTeamNames = {};
-
-        Object.values(teamNames).forEach(teamNamePermutations => {
-            teamNamePermutations.forEach(teamName => {
-                dynamicTeamNames[teamName] = teamNamePermutations;
-            })
-        });
-
-        return dynamicTeamNames;
-    }
 
     function injectFUSEInfoIntoFantasySite() {
         const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
@@ -261,118 +176,7 @@
         }
     }
 
-    dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, editSettings);
-
-    function editSettings() {
-        if (document.getElementById(selectors.settingPanel.name)) {
-            hideSettings();
-
-            return;
-        }
-
-        let settingsPanel = createMainSettingsPanel();
-        const savedData = getStoredData().data
-
-        const borisChenTab = borisChen.settingsPanel.createBorisChenTab(savedData.borisChen)
-
-        // TODO move this inside the module definition...maybe
-        const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
-            toggleTabs(borisChenTab.id)
-        });
-
-        const subvertADownTab = subvertADown.settingsPanel.createSubvertADownTab(savedData.subvertADown);
-        const toggleSubvertADownTab = dom.makeButton('SubvertADown', () => {
-            toggleTabs(subvertADownTab.id)
-        });
-
-        const customDataTab = customData.settingsPanel.createCustomDataTab(savedData.customData);
-        const toggleCustomData = dom.makeButton('CustomData', () => {
-            toggleTabs(customDataTab.id)
-        });
-        settingsPanel.appendChild(toggleBorisChenTab);
-        settingsPanel.appendChild(toggleSubvertADownTab);
-        settingsPanel.appendChild(toggleCustomData);
-        settingsPanel.appendChild(borisChenTab);
-        settingsPanel.appendChild(subvertADownTab);
-        settingsPanel.appendChild(customDataTab);
-
-        const saveBtn = dom.makeButton('Save', () => {
-            // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
-            let state = getStoredData();
-
-            state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
-            state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
-
-            state.data.subvertADown = { ...state.data.borisChen, ...subvertADown.settingsPanel.getSubvertADownFormData() };
-            state.data.subvertADown.parsed = subvertADown.settingsPanel.parseSubvertADownFormRawData(state.data.subvertADown.raw);
-
-            state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
-            state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
-
-            saveToLocalStorage(state);
-            hideSettings();
-            injectFUSEInfoIntoFantasySite();
-        });
-
-        settingsPanel.appendChild(saveBtn);
-        settingsPanel.appendChild(dom.makeButton('Hide', hideSettings));
-        settingsPanel.appendChild(createVersionElement());
-
-        document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
-        toggleTabs(borisChenTab.id);
-
-        function createVersionElement() {
-            const versionSpan = document.createElement('span');
-            versionSpan.textContent = `v${version}`;
-            versionSpan.style.position = 'absolute';
-            versionSpan.style.bottom = '0';
-            versionSpan.style.right = '0';;
-            versionSpan.style.fontSize = 'smaller';
-
-            return versionSpan;
-        }
-        function createMainSettingsPanel() {
-            const settingsPanel = document.createElement('div');
-
-            settingsPanel.setAttribute('id', selectors.settingPanel.name);
-            settingsPanel.style.position = 'fixed';
-            settingsPanel.style.top = '125px';
-            settingsPanel.style.right = '0';
-            settingsPanel.style.backgroundColor = '#f9f9f9';
-            settingsPanel.style.width = '410px';
-            settingsPanel.style.padding = '10px';
-            settingsPanel.style.zIndex = '9999999';
-            settingsPanel.style.textAlign = 'left';
-
-            settingsPanel.style.padding = '15px';
-            settingsPanel.style.border = '1px solid #ccc';
-            settingsPanel.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
-
-            return settingsPanel
-        }
-
-        function hideAllTabs() {
-            const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
-
-            tabs.forEach(tab => {
-                tab.style.display = 'none';
-            });
-        };
-
-        function showTab(tabId) {
-            var element = document.getElementById(tabId);
-            element.style.display = 'block';
-        }
-
-        function toggleTabs(tabId) {
-            hideAllTabs();
-            showTab(tabId);
-        }
-    }
-
-    function hideSettings() {
-        document.body.removeChild(document.getElementById(selectors.settingPanel.name));
-    }
+    dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, settings.editSettings);
 
     function getStoredData() {
         const storedData = localStorage.getItem(selectors.localStorage);
@@ -410,6 +214,217 @@
 
     function saveToLocalStorage(data) {
         localStorage.setItem(selectors.localStorage, JSON.stringify(data));
+    }
+
+    function makePlayersModule() {
+        return {
+            addPlayerInfoToDictionary,
+            getDSTNames
+        }
+
+        function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
+            const playerName = player.replace(' III', '').replace(' II', '');
+            let infoToSave = playerDictionary[playerName]
+    
+            if (infoToSave) {
+                infoToSave += `|${newInfo}`;
+            } else {
+                infoToSave = newInfo;
+            }
+    
+            const distNames = DSTNames[playerName] || [];
+    
+            if (distNames.length) {
+                distNames.forEach(distName => {
+                    playerDictionary[distName] = infoToSave;
+                });
+    
+                return playerDictionary;
+            }
+    
+            playerDictionary[playerName] = infoToSave;
+            playerDictionary[player] = infoToSave; // some sites do use the II/III name
+    
+            const [first, ...rest] = playerName.split(' ');
+    
+            // Some sites truncate player names on some, but not all pages
+            // ie Christian McCaffrey is sometimes shown as C. McCaffrey
+            // storing both the long and short name allows the playerDictionary lookup
+            // to work on all pages
+    
+            const shortName = `${first[0]}. ${rest.join(' ')}`
+            playerDictionary[shortName] = infoToSave;
+    
+            // Sleeper shows Christian McCaffrey as C McCaffrey
+            const shortNameWithoutPeriod = `${first[0]} ${rest.join(' ')}`
+            playerDictionary[shortNameWithoutPeriod] = infoToSave;
+    
+            return playerDictionary;
+        }
+    
+        function getDSTNames() {
+            const teamNames = {
+                '49ers': ['49ers', 'San Francisco', 'San Francisco 49ers', 'San Francisco. 49ers', 'SF'],
+                'Bears': ['Bears', 'Chicago', 'Chicago Bears', 'Chicago. Bears', 'CHI'],
+                'Bengals': ['Bengals', 'Cincinnati', 'Cincinnati Bengals', 'Cincinnati. Bengals', 'CIN'],
+                'Bills': ['Bills', 'Buffalo', 'Buffalo Bills', 'Buffalo. Bills', 'BUF'],
+                'Broncos': ['Broncos', 'Denver', 'Denver Broncos', 'Denver. Broncos', 'DEN'],
+                'Browns': ['Browns', 'Cleveland', 'Cleveland Browns', 'Cleveland. Browns', 'CLE'],
+                'Buccaneers': ['Buccaneers', 'Tampa Bay', 'Tampa Bay Buccaneers', 'Tampa Bay. Buccaneers', 'TB'],
+                'Cardinals': ['Cardinals', 'Arizona', 'Arizona Cardinals', 'Arizona. Cardinals', 'ARI'],
+                'Chargers': ['Chargers', 'Los Angeles', 'Los Angeles Chargers', 'Los Angeles. Chargers', 'LAC'],
+                'Chiefs': ['Chiefs', 'Kansas City', 'Kansas City Chiefs', 'Kansas City. Chiefs', 'KC'],
+                'Colts': ['Colts', 'Indianapolis', 'Indianapolis Colts', 'Indianapolis. Colts', 'IND'],
+                'Commanders': ['Commanders', 'Washington', 'Washington Commanders', 'Washington. Commanders', 'WAS'],
+                'Cowboys': ['Cowboys', 'Dallas', 'Dallas Cowboys', 'Dallas. Cowboys', 'DAL'],
+                'Dolphins': ['Dolphins', 'Miami', 'Miami Dolphins', 'Miami. Dolphins', 'MIA'],
+                'Eagles': ['Eagles', 'Philadelphia', 'Philadelphia Eagles', 'Philadelphia. Eagles', 'PHI'],
+                'Falcons': ['Falcons', 'Atlanta', 'Atlanta Falcons', 'Atlanta. Falcons', 'ATL'],
+                'Giants': ['Giants', 'New York', 'New York Giants', 'New York. Giants', 'NYG'],
+                'Jaguars': ['Jaguars', 'Jacksonville', 'Jacksonville Jaguars', 'Jacksonville. Jaguars', 'JAX'],
+                'Jets': ['Jets', 'New York', 'New York Jets', 'New York. Jets', 'NYJ'],
+                'Lions': ['Lions', 'Detroit', 'Detroit Lions', 'Detroit. Lions', 'DET'],
+                'Packers': ['Packers', 'Green Bay', 'Green Bay Packers', 'Green Bay. Packers', 'GB'],
+                'Panthers': ['Panthers', 'Carolina', 'Carolina Panthers', 'Carolina. Panthers', 'CAR'],
+                'Patriots': ['Patriots', 'New England', 'New England Patriots', 'New England. Patriots', 'NE'],
+                'Raiders': ['Raiders', 'Las Vegas', 'Las Vegas Raiders', 'Las Vegas. Raiders', 'LV'],
+                'Rams': ['Rams', 'Los Angeles', 'Los Angeles Rams', 'Los Angeles. Rams', 'LA'],
+                'Ravens': ['Ravens', 'Baltimore', 'Baltimore Ravens', 'Baltimore. Ravens', 'BAL'],
+                'Saints': ['Saints', 'New Orleans', 'New Orleans Saints', 'New Orleans. Saints', 'NO'],
+                'Seahawks': ['Seahawks', 'Seattle', 'Seattle Seahawks', 'Seattle. Seahawks', 'SEA'],
+                'Steelers': ['Steelers', 'Pittsburgh', 'Pittsburgh Steelers', 'Pittsburgh. Steelers', 'PIT'],
+                'Texans': ['Texans', 'Houston', 'Houston Texans', 'Houston. Texans', 'HOU'],
+                'Titans': ['Titans', 'Tennessee', 'Tennessee Titans', 'Tennessee. Titans', 'TEN'],
+                'Vikings': ['Vikings', 'Minnesota', 'Minnesota Vikings', 'Minnesota. Vikings', 'MIN']
+            }
+    
+            let dynamicTeamNames = {};
+    
+            Object.values(teamNames).forEach(teamNamePermutations => {
+                teamNamePermutations.forEach(teamName => {
+                    dynamicTeamNames[teamName] = teamNamePermutations;
+                })
+            });
+    
+            return dynamicTeamNames;
+        }
+    }
+    function makeSettingsModule() {
+        return {
+            editSettings,
+            hideSettings
+        }
+
+        function editSettings() {
+            if (document.getElementById(selectors.settingPanel.name)) {
+                hideSettings();
+
+                return;
+            }
+
+            let settingsPanel = createMainSettingsPanel();
+            const savedData = getStoredData().data
+
+            const borisChenTab = borisChen.settingsPanel.createBorisChenTab(savedData.borisChen)
+
+            // TODO move this inside the module definition...maybe
+            const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
+                toggleTabs(borisChenTab.id)
+            });
+
+            const subvertADownTab = subvertADown.settingsPanel.createSubvertADownTab(savedData.subvertADown);
+            const toggleSubvertADownTab = dom.makeButton('SubvertADown', () => {
+                toggleTabs(subvertADownTab.id)
+            });
+
+            const customDataTab = customData.settingsPanel.createCustomDataTab(savedData.customData);
+            const toggleCustomData = dom.makeButton('CustomData', () => {
+                toggleTabs(customDataTab.id)
+            });
+            settingsPanel.appendChild(toggleBorisChenTab);
+            settingsPanel.appendChild(toggleSubvertADownTab);
+            settingsPanel.appendChild(toggleCustomData);
+            settingsPanel.appendChild(borisChenTab);
+            settingsPanel.appendChild(subvertADownTab);
+            settingsPanel.appendChild(customDataTab);
+
+            const saveBtn = dom.makeButton('Save', () => {
+                // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
+                let state = getStoredData();
+
+                state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
+                state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
+
+                state.data.subvertADown = { ...state.data.borisChen, ...subvertADown.settingsPanel.getSubvertADownFormData() };
+                state.data.subvertADown.parsed = subvertADown.settingsPanel.parseSubvertADownFormRawData(state.data.subvertADown.raw);
+
+                state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
+                state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
+
+                saveToLocalStorage(state);
+                hideSettings();
+                injectFUSEInfoIntoFantasySite();
+            });
+
+            settingsPanel.appendChild(saveBtn);
+            settingsPanel.appendChild(dom.makeButton('Hide', hideSettings));
+            settingsPanel.appendChild(createVersionElement());
+
+            document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
+            toggleTabs(borisChenTab.id);
+
+            function createVersionElement() {
+                const versionSpan = document.createElement('span');
+                versionSpan.textContent = `v${version}`;
+                versionSpan.style.position = 'absolute';
+                versionSpan.style.bottom = '0';
+                versionSpan.style.right = '0';;
+                versionSpan.style.fontSize = 'smaller';
+
+                return versionSpan;
+            }
+            function createMainSettingsPanel() {
+                const settingsPanel = document.createElement('div');
+
+                settingsPanel.setAttribute('id', selectors.settingPanel.name);
+                settingsPanel.style.position = 'fixed';
+                settingsPanel.style.top = '125px';
+                settingsPanel.style.right = '0';
+                settingsPanel.style.backgroundColor = '#f9f9f9';
+                settingsPanel.style.width = '410px';
+                settingsPanel.style.padding = '10px';
+                settingsPanel.style.zIndex = '9999999';
+                settingsPanel.style.textAlign = 'left';
+
+                settingsPanel.style.padding = '15px';
+                settingsPanel.style.border = '1px solid #ccc';
+                settingsPanel.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
+
+                return settingsPanel
+            }
+
+            function hideAllTabs() {
+                const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
+
+                tabs.forEach(tab => {
+                    tab.style.display = 'none';
+                });
+            };
+
+            function showTab(tabId) {
+                var element = document.getElementById(tabId);
+                element.style.display = 'block';
+            }
+
+            function toggleTabs(tabId) {
+                hideAllTabs();
+                showTab(tabId);
+            }
+        }
+
+        function hideSettings() {
+            document.body.removeChild(document.getElementById(selectors.settingPanel.name));
+        }
     }
 
     function makeBorisChenModule() {
@@ -455,17 +470,17 @@
         }
 
         function parseBorischenRawData(rawTierData) {
-            const players = {};
+            const playerDictionary = {};
 
-            parseTierInfo(rawTierData.QB, players);
-            parseTierInfo(rawTierData.RB, players);
-            parseTierInfo(rawTierData.WR, players);
-            parseTierInfo(rawTierData.TE, players);
-            parseTierInfo(rawTierData.FLEX, players);
-            parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
-            parseTierInfo(rawTierData.K, players);
+            parseTierInfo(rawTierData.QB, playerDictionary);
+            parseTierInfo(rawTierData.RB, playerDictionary);
+            parseTierInfo(rawTierData.WR, playerDictionary);
+            parseTierInfo(rawTierData.TE, playerDictionary);
+            parseTierInfo(rawTierData.FLEX, playerDictionary);
+            parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), playerDictionary);
+            parseTierInfo(rawTierData.K, playerDictionary);
 
-            return players;
+            return playerDictionary;
 
             function parseTierInfo(raw, playerDictionary) {
                 if (!raw) {
@@ -477,10 +492,10 @@
                 tiers.forEach(tierRow => {
                     const row = tierRow.split(': ');
                     const tier = row[0].replace('Tier ', '');
-                    const players = row[1];
+                    const playersInTier = row[1];
 
-                    players?.split(', ').forEach((player, index) => {
-                        addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                    playersInTier?.split(', ').forEach((player, index) => {
+                        players.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
                     });
                 });
 
@@ -674,7 +689,7 @@
 
     function makeSubvertADownModule() {
         return {
-            settingsPanel:{
+            settingsPanel: {
                 createSubvertADownTab,
                 getSubvertADownFormData,
                 parseSubvertADownFormRawData
@@ -726,15 +741,15 @@
         }
 
         function parseSubvertADownFormRawData(rawData) {
-            const players = {};
+            const playersDictionary = {};
 
-            processData(rawData.DST, players, true);
-            processData(rawData.QB, players);
-            processData(rawData.K, players);
+            processData(rawData.DST, playersDictionary, true);
+            processData(rawData.QB, playersDictionary);
+            processData(rawData.K, playersDictionary);
 
-            return players;
+            return playersDictionary;
 
-            function processData(input, players, isDST) {
+            function processData(input, playersDictionary, isDST) {
                 const lines = input.trim().split('\n');
 
                 let player = '';
@@ -752,14 +767,14 @@
                             player = `${player}`;
                         }
                     } else {
-                        addPlayerInfoToDictionary(player, line.trim(), players);
+                        players.addPlayerInfoToDictionary(player, line.trim(), playersDictionary);
 
                         // reset for next iteration
                         player = ''
                     }
                 })
 
-                return players;
+                return playersDictionary;
             }
         }
     }
@@ -845,7 +860,7 @@
         }
 
         function parseCustomDataFormData(rawData, savedData) {
-            const players = {};
+            const playersDictionary = {};
             const lines = rawData.custom.split('\n');
 
             const delimiters = {
@@ -870,10 +885,10 @@
                     restOfData.push(columns[savedData.displayColumn - 1]);
                 }
 
-                addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), players);
+                players.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary);
             }
 
-            return players;
+            return playersDictionary;
         }
     }
 
