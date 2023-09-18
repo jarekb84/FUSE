@@ -400,7 +400,7 @@
                 state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
                 state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
 
-                state.data.subvertADown = { ...state.data.borisChen, ...subvertADown.settingsPanel.getSubvertADownFormData() };
+                state.data.subvertADown = { ...state.data.subvertADown, ...subvertADown.settingsPanel.getSubvertADownFormData() };
                 state.data.subvertADown.parsed = subvertADown.settingsPanel.parseSubvertADownFormRawData(state.data.subvertADown.raw);
 
                 state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
