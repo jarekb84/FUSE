@@ -29,156 +29,11 @@
     }
     const dom = makeDOMModule();
     const utils = makeUtilsModule();
+    const borisChen = makeBorisChenModule();
 
     const DSTNames = getDSTNames();
-    await runBorisChenAutoUpdate();
+    await borisChen.runBorisChenAutoUpdate();
     runAutoUpdate();
-
-    async function runBorisChenAutoUpdate() {
-        let savedData = getStoredData();
-        const isDaily = savedData.data.borisChen.autoFetch === 'Daily';
-        const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
-        const ranAsUserScript = !!window.GM?.info
-        const eligibleForAutoUpdate = isDaily && hasBeenFetched && ranAsUserScript;
-
-        if (!eligibleForAutoUpdate) {
-            return Promise.resolve();
-        }
-
-        const lastFetched = parseInt(savedData.data.borisChen.lastFetched, 10);
-        const currentTime = Date.now();
-        const twentyFourHoursInMs = 300000;
-
-        const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
-
-        if (isBelow24HoursOld) {
-            return Promise.resolve();
-        }
-
-        const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
-        savedData.data.borisChen.raw = rawData;
-        savedData.data.borisChen.parsed = parseBorischenRawData(rawData);
-        savedData.data.borisChen.lastFetched = Date.now();
-
-        saveToLocalStorage(savedData);
-
-        return Promise.resolve();
-    }
-
-    function parseBorischenRawData(rawTierData) {
-        const players = {};
-
-        parseTierInfo(rawTierData.QB, players);
-        parseTierInfo(rawTierData.RB, players);
-        parseTierInfo(rawTierData.WR, players);
-        parseTierInfo(rawTierData.TE, players);
-        parseTierInfo(rawTierData.FLEX, players);
-        parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
-        parseTierInfo(rawTierData.K, players);
-
-        return players;
-
-        function parseTierInfo(raw, playerDictionary) {
-            if (!raw) {
-                return
-            }
-
-            const tiers = raw.split('\n');
-
-            tiers.forEach(tierRow => {
-                const row = tierRow.split(': ');
-                const tier = row[0].replace('Tier ', '');
-                const players = row[1];
-
-                players?.split(', ').forEach((player, index) => {
-                    addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
-                });
-            });
-
-            return playerDictionary;
-        }
-
-        function splitUpDSTByPlatform(raw) {
-            if (!raw) {
-                return;
-            }
-
-            const tiers = raw.split('\n');
-            const output = [];
-
-            tiers.forEach(tierRow => {
-                const row = tierRow.split(': ');
-                const tier = row[0];
-                const teams = row[1];
-                let rowOutput = `${tier}: `;
-
-                teams?.split(', ').forEach((team, index) => {
-                    // Team name is the last word
-                    const teamName = team.split(' ').pop();
-
-                    if (index !== 0) {
-                        rowOutput += `, `;
-                    }
-
-                    rowOutput += `${teamName}`;
-                });
-
-                output.push(rowOutput);
-            });
-
-            return output.join('\n');
-        }
-    }
-
-    async function fetchDataFromBorisChenWebsite(scoring) {
-        const scoreSuffix = {
-            "PPR": "-PPR",
-            "0.5 PPR": "-HALF",
-            "Standard": ""
-        }
-
-        const positionsToGet = [
-            { key: 'QB', val: `QB` },
-            { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
-            { key: 'WR', val: `WR${scoreSuffix[scoring]}` },
-            { key: 'TE', val: `TE${scoreSuffix[scoring]}` },
-            { key: 'FLEX', val: `FLX${scoreSuffix[scoring]}` },
-            { key: 'K', val: `K` },
-            { key: 'DST', val: `DST` },
-        ]
-
-        let rawTierData = {};
-
-        const promises = positionsToGet.map(position => {
-            return new Promise((resolve, reject) => {
-                GM.xmlHttpRequest({
-                    method: "GET",
-                    url: makeUrlString(position.val),
-                    headers: {
-                        "Accept": "text/plain"
-                    },
-                    onload: (response) => {
-                        if (response.status >= 200 && response.status < 400) {
-                            rawTierData[position.key] = response.responseText;
-                            resolve();
-                        } else {
-                            reject(new Error('Request failed'));
-                        }
-                    },
-                    onerror: () => {
-                        reject(new Error('Network error'));
-                    }
-                });
-            });
-        });
-        await Promise.all(promises);
-
-        return rawTierData;
-
-        function makeUrlString(position) {
-            return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
-        }
-    }
 
     function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
         const playerName = player.replace(' III', '').replace(' II', '');
@@ -416,8 +271,9 @@
         let settingsPanel = createMainSettingsPanel();
         const savedData = getStoredData().data
 
-        const borisChenTab = createBorisChenTab(savedData.borisChen)
+        const borisChenTab = borisChen.settingsPanel.createBorisChenTab(savedData.borisChen)
 
+        // TODO move this inside the module definition...maybe
         const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
             toggleTabs(borisChenTab.id)
         });
@@ -441,8 +297,8 @@
         const saveBtn = dom.makeButton('Save', () => {
             let state = getStoredData();
 
-            state.data.borisChen = { ...state.data.borisChen, ...getBorischenFormData() };
-            state.data.borisChen.parsed = parseBorischenRawData(state.data.borisChen.raw);
+            state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
+            state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
 
             state.data.subvertADown = { ...state.data.borisChen, ...getSubvertADownFormData() };
             state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
@@ -490,108 +346,6 @@
             settingsPanel.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
 
             return settingsPanel
-        }
-
-        function createBorisChenTab(savedData) {
-            const tab = dom.makeTabElement(
-                selectors.settingPanel.borisChen,
-                "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
-            );
-
-            const prefixField = dom.makeInputField(
-                'Prefix (optional)',
-                `${selectors.settingPanel.borisChen}_prefix`,
-                'Ex: BC',
-                savedData.prefix,
-            );
-
-            tab.appendChild(prefixField);
-            const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
-            if (window.GM?.info) {
-                const dataSettings = document.createElement('div');
-                dataSettings.style.display = 'flex';
-                dataSettings.style.justifyContent = 'space-between';
-                dataSettings.style.marginBottom = '10px';
-
-                const scoringField = dom.makeDropdownField(
-                    'Scoring',
-                    `${selectors.settingPanel.borisChen}_scoring`,
-                    ['Standard', '0.5 PPR', 'PPR'],
-                    savedData.scoring
-                );
-
-                const autoFetchField = dom.makeDropdownField(
-                    'AutoFetch',
-                    `${selectors.settingPanel.borisChen}_autoFetch`,
-                    ['Never', 'Daily'],
-                    savedData.autoFetch
-                );
-
-                autoFetchField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
-
-                const lastFetchedDateTime = utils.formatTimestamp(savedData.lastFetched)
-
-                const lastFetchedField = dom.makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
-                lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
-
-                const fetchDataBtn = dom.makeButton('Fetch', async () => {
-                    const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
-                    self.disabled = true;
-                    const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
-                    const rawData = await fetchDataFromBorisChenWebsite(scoring);
-                    self.disabled = false;
-                    const lastFetchedTimestamp = Date.now()
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = utils.formatTimestamp(lastFetchedTimestamp);
-
-                    lastFetchedField.style.visibility = 'visible';
-                    autoFetchField.style.visibility = 'visible';
-
-                    for (const position of positions) {
-                        let positionInput = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`);
-                        positionInput.value = rawData[position];
-                    }
-                });
-                fetchDataBtn.id = `${selectors.settingPanel.borisChen}_fetchDataBtn`;
-
-
-                dataSettings.appendChild(scoringField);
-                dataSettings.appendChild(autoFetchField);
-                dataSettings.appendChild(lastFetchedField);
-
-                tab.appendChild(dataSettings);
-                tab.appendChild(fetchDataBtn);
-            }
-
-            for (const position of positions) {
-                const positionField = dom.makeTextAreaField(
-                    position,
-                    `${selectors.settingPanel.borisChen}_${position}`,
-                    savedData.raw[position],
-                );
-
-                tab.appendChild(positionField);
-            }
-
-            return tab;
-        }
-
-        function getBorischenFormData() {
-            const data = {
-                raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`)?.value,
-                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`)?.value,
-                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`)?.value,
-                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`)?.getAttribute('data-state')
-            };
-
-            const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
-
-            for (const position of positions) {
-                data.raw[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
-            }
-
-            return data;
         }
 
         function createSubvertADownTab(savedData) {
@@ -780,8 +534,6 @@
             return players;
         }
 
-
-
         function hideAllTabs() {
             const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
 
@@ -841,6 +593,266 @@
 
     function saveToLocalStorage(data) {
         localStorage.setItem(selectors.localStorage, JSON.stringify(data));
+    }
+
+    function makeBorisChenModule(){
+        // TODO rename functions to remove the redundant borischen term
+        return {
+            runBorisChenAutoUpdate,
+            parseBorischenRawData,
+            settingsPanel:{
+                createBorisChenTab,
+                getBorischenFormData,
+            }
+        }
+
+        async function runBorisChenAutoUpdate() {
+            let savedData = getStoredData();
+            const isDaily = savedData.data.borisChen.autoFetch === 'Daily';
+            const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
+            const ranAsUserScript = !!window.GM?.info
+            const eligibleForAutoUpdate = isDaily && hasBeenFetched && ranAsUserScript;
+    
+            if (!eligibleForAutoUpdate) {
+                return Promise.resolve();
+            }
+    
+            const lastFetched = parseInt(savedData.data.borisChen.lastFetched, 10);
+            const currentTime = Date.now();
+            const twentyFourHoursInMs = 300000;
+    
+            const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
+    
+            if (isBelow24HoursOld) {
+                return Promise.resolve();
+            }
+    
+            const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
+            savedData.data.borisChen.raw = rawData;
+            savedData.data.borisChen.parsed = parseBorischenRawData(rawData);
+            savedData.data.borisChen.lastFetched = Date.now();
+    
+            saveToLocalStorage(savedData);
+    
+            return Promise.resolve();
+        }
+
+        function parseBorischenRawData(rawTierData) {
+            const players = {};
+    
+            parseTierInfo(rawTierData.QB, players);
+            parseTierInfo(rawTierData.RB, players);
+            parseTierInfo(rawTierData.WR, players);
+            parseTierInfo(rawTierData.TE, players);
+            parseTierInfo(rawTierData.FLEX, players);
+            parseTierInfo(splitUpDSTByPlatform(rawTierData.DST), players);
+            parseTierInfo(rawTierData.K, players);
+    
+            return players;
+    
+            function parseTierInfo(raw, playerDictionary) {
+                if (!raw) {
+                    return
+                }
+    
+                const tiers = raw.split('\n');
+    
+                tiers.forEach(tierRow => {
+                    const row = tierRow.split(': ');
+                    const tier = row[0].replace('Tier ', '');
+                    const players = row[1];
+    
+                    players?.split(', ').forEach((player, index) => {
+                        addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                    });
+                });
+    
+                return playerDictionary;
+            }
+    
+            function splitUpDSTByPlatform(raw) {
+                if (!raw) {
+                    return;
+                }
+    
+                const tiers = raw.split('\n');
+                const output = [];
+    
+                tiers.forEach(tierRow => {
+                    const row = tierRow.split(': ');
+                    const tier = row[0];
+                    const teams = row[1];
+                    let rowOutput = `${tier}: `;
+    
+                    teams?.split(', ').forEach((team, index) => {
+                        // Team name is the last word
+                        const teamName = team.split(' ').pop();
+    
+                        if (index !== 0) {
+                            rowOutput += `, `;
+                        }
+    
+                        rowOutput += `${teamName}`;
+                    });
+    
+                    output.push(rowOutput);
+                });
+    
+                return output.join('\n');
+            }
+        }
+    
+        async function fetchDataFromBorisChenWebsite(scoring) {
+            const scoreSuffix = {
+                "PPR": "-PPR",
+                "0.5 PPR": "-HALF",
+                "Standard": ""
+            }
+    
+            const positionsToGet = [
+                { key: 'QB', val: `QB` },
+                { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
+                { key: 'WR', val: `WR${scoreSuffix[scoring]}` },
+                { key: 'TE', val: `TE${scoreSuffix[scoring]}` },
+                { key: 'FLEX', val: `FLX${scoreSuffix[scoring]}` },
+                { key: 'K', val: `K` },
+                { key: 'DST', val: `DST` },
+            ]
+    
+            let rawTierData = {};
+    
+            const promises = positionsToGet.map(position => {
+                return new Promise((resolve, reject) => {
+                    GM.xmlHttpRequest({
+                        method: "GET",
+                        url: makeUrlString(position.val),
+                        headers: {
+                            "Accept": "text/plain"
+                        },
+                        onload: (response) => {
+                            if (response.status >= 200 && response.status < 400) {
+                                rawTierData[position.key] = response.responseText;
+                                resolve();
+                            } else {
+                                reject(new Error('Request failed'));
+                            }
+                        },
+                        onerror: () => {
+                            reject(new Error('Network error'));
+                        }
+                    });
+                });
+            });
+            await Promise.all(promises);
+    
+            return rawTierData;
+    
+            function makeUrlString(position) {
+                return `https://s3-us-west-1.amazonaws.com/fftiers/out/text_${position}.txt`;
+            }
+        }
+
+        function createBorisChenTab(savedData) {
+            const tab = dom.makeTabElement(
+                selectors.settingPanel.borisChen,
+                "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
+            );
+
+            const prefixField = dom.makeInputField(
+                'Prefix (optional)',
+                `${selectors.settingPanel.borisChen}_prefix`,
+                'Ex: BC',
+                savedData.prefix,
+            );
+
+            tab.appendChild(prefixField);
+            const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
+            if (window.GM?.info) {
+                const dataSettings = document.createElement('div');
+                dataSettings.style.display = 'flex';
+                dataSettings.style.justifyContent = 'space-between';
+                dataSettings.style.marginBottom = '10px';
+
+                const scoringField = dom.makeDropdownField(
+                    'Scoring',
+                    `${selectors.settingPanel.borisChen}_scoring`,
+                    ['Standard', '0.5 PPR', 'PPR'],
+                    savedData.scoring
+                );
+
+                const autoFetchField = dom.makeDropdownField(
+                    'AutoFetch',
+                    `${selectors.settingPanel.borisChen}_autoFetch`,
+                    ['Never', 'Daily'],
+                    savedData.autoFetch
+                );
+
+                autoFetchField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
+
+                const lastFetchedDateTime = utils.formatTimestamp(savedData.lastFetched)
+
+                const lastFetchedField = dom.makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
+                lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
+
+                const fetchDataBtn = dom.makeButton('Fetch', async () => {
+                    const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
+                    self.disabled = true;
+                    const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
+                    const rawData = await fetchDataFromBorisChenWebsite(scoring);
+                    self.disabled = false;
+                    const lastFetchedTimestamp = Date.now()
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = utils.formatTimestamp(lastFetchedTimestamp);
+
+                    lastFetchedField.style.visibility = 'visible';
+                    autoFetchField.style.visibility = 'visible';
+
+                    for (const position of positions) {
+                        let positionInput = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`);
+                        positionInput.value = rawData[position];
+                    }
+                });
+                fetchDataBtn.id = `${selectors.settingPanel.borisChen}_fetchDataBtn`;
+
+
+                dataSettings.appendChild(scoringField);
+                dataSettings.appendChild(autoFetchField);
+                dataSettings.appendChild(lastFetchedField);
+
+                tab.appendChild(dataSettings);
+                tab.appendChild(fetchDataBtn);
+            }
+
+            for (const position of positions) {
+                const positionField = dom.makeTextAreaField(
+                    position,
+                    `${selectors.settingPanel.borisChen}_${position}`,
+                    savedData.raw[position],
+                );
+
+                tab.appendChild(positionField);
+            }
+
+            return tab;
+        }
+
+        function getBorischenFormData() {
+            const data = {
+                raw: {},
+                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`)?.value,
+                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`)?.value,
+                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`)?.value,
+                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`)?.getAttribute('data-state')
+            };
+
+            const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
+
+            for (const position of positions) {
+                data.raw[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
+            }
+
+            return data;
+        }
     }
 
     function makeUtilsModule() {
