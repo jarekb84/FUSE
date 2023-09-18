@@ -520,7 +520,7 @@
                             return el ? el.value : null;
                         },
                         setValue: function (position, value) {
-                            return this.get().setAttribute(attribute, value);
+                            return this.get(position).value = value;
                         }
                     }
                 }
@@ -723,6 +723,7 @@
                 );
                 lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
+                // TODO bits of this still are broken, auto fetch/last fetched not showing, last fetched value missing
                 const fetchDataBtn = dom.makeButton('Fetch', async () => {
                     const btn = selectors.fetchDataBtn.get();
                     btn.disabled = true;
@@ -737,7 +738,7 @@
                     autoFetchField.style.visibility = 'visible';
 
                     for (const position of positions) {
-                        selectors.positions.setValue(position, rawData[position]);                        
+                        selectors.positions.setValue(position, rawData[position]);
                     }
                 });
                 // TODO move this into the makeButton method
