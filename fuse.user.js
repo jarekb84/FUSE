@@ -496,7 +496,7 @@
 
             const lastFetched = parseInt(state.data.borisChen.lastFetched, 10);
             const currentTime = Date.now();
-            const twentyFourHoursInMs = 300000;
+            const twentyFourHoursInMs = 24 * 60 * 60 * 100;
 
             const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
 
