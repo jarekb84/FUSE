@@ -36,7 +36,8 @@
         let savedData = getStoredData();
         const isDaily = savedData.data.borisChen.autoFetch === 'Daily';
         const hasBeenFetched = !!savedData.data.borisChen.lastFetched;
-        const eligibleForAutoUpdate = isDaily && hasBeenFetched;
+        const ranAsUserScript = !!window.GM?.info
+        const eligibleForAutoUpdate = isDaily && hasBeenFetched && ranAsUserScript;
 
         if (!eligibleForAutoUpdate) {
             return Promise.resolve();
@@ -51,8 +52,6 @@
         if (isBelow24HoursOld) {
             return Promise.resolve();
         }
-
-        console.log('Fetching data from BorisChen');
 
         const rawData = await fetchDataFromBorisChenWebsite(savedData.data.borisChen.scoring);
         savedData.data.borisChen.raw = rawData;
@@ -578,10 +577,10 @@
         function getBorischenFormData() {
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`).value,
-                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value,
-                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`).value,
-                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).getAttribute('data-state')
+                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`)?.value,
+                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`)?.value,
+                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`)?.value,
+                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`)?.getAttribute('data-state')
             };
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
