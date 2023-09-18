@@ -30,6 +30,7 @@
     const dom = makeDOMModule();
     const utils = makeUtilsModule();
     const borisChen = makeBorisChenModule();
+    const customData = makeCustomDataModule();
 
     const DSTNames = getDSTNames();
     await borisChen.runBorisChenAutoUpdate();
@@ -283,7 +284,7 @@
             toggleTabs(subvertADownTab.id)
         });
 
-        const customDataTab = createCustomDataTab(savedData.customData);
+        const customDataTab = customData.settingsPanel.createCustomDataTab(savedData.customData);
         const toggleCustomData = dom.makeButton('CustomData', () => {
             toggleTabs(customDataTab.id)
         });
@@ -295,6 +296,7 @@
         settingsPanel.appendChild(customDataTab);
 
         const saveBtn = dom.makeButton('Save', () => {
+            // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
             let state = getStoredData();
 
             state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
@@ -303,8 +305,8 @@
             state.data.subvertADown = { ...state.data.borisChen, ...getSubvertADownFormData() };
             state.data.subvertADown.parsed = parseSubvertADownFormRawData(state.data.subvertADown.raw);
 
-            state.data.customData = { ...state.data.customData, ...getCustomDataFormData() };
-            state.data.customData.parsed = parseCustomDataFormData(state.data.customData.raw, state.data.customData);
+            state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
+            state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
 
             saveToLocalStorage(state);
             hideSettings();
@@ -431,108 +433,6 @@
             }
         }
 
-        function createCustomDataTab(savedData) {
-            const tab = dom.makeTabElement(
-                selectors.settingPanel.customData,
-                "Paste in your own data from a spreadsheet or another website."
-            );
-
-            const prefixField = dom.makeInputField(
-                'Prefix (optional)',
-                `${selectors.settingPanel.customData}_prefix`,
-                'Ex: C',
-                savedData.prefix,
-            );
-
-            tab.appendChild(prefixField);
-            const dataSettings = document.createElement('div');
-            dataSettings.style.display = 'flex';
-            dataSettings.style.justifyContent = 'space-between';
-            dataSettings.style.marginBottom = '10px';
-
-            const delimiterField = dom.makeDropdownField(
-                'Delimiter',
-                `${selectors.settingPanel.customData}_delimiter`,
-                ['Tab', 'Space', 'Comma'],
-                savedData.delimiter
-            );
-            dataSettings.appendChild(delimiterField);
-
-            const playerColumnField = dom.makeDropdownField(
-                'Player Column',
-                `${selectors.settingPanel.customData}_playerColumn`,
-                Array(20).fill().map((_, i) => i + 1),
-                savedData.playerColumn
-            );
-            dataSettings.appendChild(playerColumnField);
-
-            const displayColumnField = dom.makeDropdownField(
-                'Display Columns',
-                `${selectors.settingPanel.customData}_displayColumn`,
-                ['All', ...Array(20).fill().map((_, i) => i + 1)],
-                savedData.displayColumn
-            );
-            dataSettings.appendChild(displayColumnField);
-
-            tab.appendChild(dataSettings);
-
-            const positionField = dom.makeTextAreaField(
-                'Custom',
-                `${selectors.settingPanel.customData}_custom`,
-                savedData.raw['custom'],
-                { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
-            );
-
-            tab.appendChild(positionField);
-
-            return tab;
-        }
-
-        function getCustomDataFormData() {
-            const data = {
-                raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.customData}_prefix`).value,
-                delimiter: document.getElementById(`${selectors.settingPanel.customData}_delimiter`).value,
-                playerColumn: document.getElementById(`${selectors.settingPanel.customData}_playerColumn`).value,
-                displayColumn: document.getElementById(`${selectors.settingPanel.customData}_displayColumn`).value
-            };
-
-            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.customData}_custom`).value;
-
-            return data;
-        }
-
-        function parseCustomDataFormData(rawData, savedData) {
-            const players = {};
-            const lines = rawData.custom.split('\n');
-
-            const delimiters = {
-                'Tab': '\t',
-                'Space': ' ',
-                'Comma': ','
-            }
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (line.length === 0) continue;
-
-                const columns = line.split(delimiters[savedData.delimiter]);
-                const playerName = columns[savedData.playerColumn - 1];
-                if (!playerName) continue;
-
-                let restOfData = [];
-
-                if (savedData.displayColumn === 'All') {
-                    restOfData = [...columns.slice(0, savedData.playerColumn - 1), ...columns.slice(savedData.playerColumn)];
-                } else {
-                    restOfData.push(columns[savedData.displayColumn - 1]);
-                }
-
-                addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), players);
-            }
-
-            return players;
-        }
 
         function hideAllTabs() {
             const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
@@ -852,6 +752,119 @@
             }
 
             return data;
+        }
+    }
+
+    function makeCustomDataModule(){
+        return {
+            settingsPanel :{
+                createCustomDataTab,
+                getCustomDataFormData,
+                parseCustomDataFormData                
+            }
+        }
+        
+        function createCustomDataTab(savedData) {
+            const tab = dom.makeTabElement(
+                selectors.settingPanel.customData,
+                "Paste in your own data from a spreadsheet or another website."
+            );
+
+            const prefixField = dom.makeInputField(
+                'Prefix (optional)',
+                `${selectors.settingPanel.customData}_prefix`,
+                'Ex: C',
+                savedData.prefix,
+            );
+
+            tab.appendChild(prefixField);
+            const dataSettings = document.createElement('div');
+            dataSettings.style.display = 'flex';
+            dataSettings.style.justifyContent = 'space-between';
+            dataSettings.style.marginBottom = '10px';
+
+            const delimiterField = dom.makeDropdownField(
+                'Delimiter',
+                `${selectors.settingPanel.customData}_delimiter`,
+                ['Tab', 'Space', 'Comma'],
+                savedData.delimiter
+            );
+            dataSettings.appendChild(delimiterField);
+
+            const playerColumnField = dom.makeDropdownField(
+                'Player Column',
+                `${selectors.settingPanel.customData}_playerColumn`,
+                Array(20).fill().map((_, i) => i + 1),
+                savedData.playerColumn
+            );
+            dataSettings.appendChild(playerColumnField);
+
+            const displayColumnField = dom.makeDropdownField(
+                'Display Columns',
+                `${selectors.settingPanel.customData}_displayColumn`,
+                ['All', ...Array(20).fill().map((_, i) => i + 1)],
+                savedData.displayColumn
+            );
+            dataSettings.appendChild(displayColumnField);
+
+            tab.appendChild(dataSettings);
+
+            const positionField = dom.makeTextAreaField(
+                'Custom',
+                `${selectors.settingPanel.customData}_custom`,
+                savedData.raw['custom'],
+                { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
+            );
+
+            tab.appendChild(positionField);
+
+            return tab;
+        }
+
+        function getCustomDataFormData() {
+            const data = {
+                raw: {},
+                prefix: document.getElementById(`${selectors.settingPanel.customData}_prefix`).value,
+                delimiter: document.getElementById(`${selectors.settingPanel.customData}_delimiter`).value,
+                playerColumn: document.getElementById(`${selectors.settingPanel.customData}_playerColumn`).value,
+                displayColumn: document.getElementById(`${selectors.settingPanel.customData}_displayColumn`).value
+            };
+
+            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.customData}_custom`).value;
+
+            return data;
+        }
+
+        function parseCustomDataFormData(rawData, savedData) {
+            const players = {};
+            const lines = rawData.custom.split('\n');
+
+            const delimiters = {
+                'Tab': '\t',
+                'Space': ' ',
+                'Comma': ','
+            }
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.length === 0) continue;
+
+                const columns = line.split(delimiters[savedData.delimiter]);
+                const playerName = columns[savedData.playerColumn - 1];
+                if (!playerName) continue;
+
+                let restOfData = [];
+
+                if (savedData.displayColumn === 'All') {
+                    restOfData = [...columns.slice(0, savedData.playerColumn - 1), ...columns.slice(savedData.playerColumn)];
+                } else {
+                    restOfData.push(columns[savedData.displayColumn - 1]);
+                }
+
+                addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), players);
+            }
+
+            return players;
         }
     }
 
