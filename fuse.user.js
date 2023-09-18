@@ -28,6 +28,7 @@
         localStorage: 'fuseStorage'
     }
     const dom = makeDOMModule();
+    const utils = makeUtilsModule();
 
     const DSTNames = getDSTNames();
     await runBorisChenAutoUpdate();
@@ -528,7 +529,7 @@
 
                 autoFetchField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
-                const lastFetchedDateTime = formatTimestamp(savedData.lastFetched)
+                const lastFetchedDateTime = utils.formatTimestamp(savedData.lastFetched)
 
                 const lastFetchedField = dom.makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
                 lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
@@ -541,7 +542,7 @@
                     self.disabled = false;
                     const lastFetchedTimestamp = Date.now()
                     document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = formatTimestamp(lastFetchedTimestamp);
+                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = utils.formatTimestamp(lastFetchedTimestamp);
 
                     lastFetchedField.style.visibility = 'visible';
                     autoFetchField.style.visibility = 'visible';
@@ -831,7 +832,7 @@
             }
         };
 
-        const result = mergeDeep(defaults, parsedData)
+        const result = utils.mergeDeep(defaults, parsedData)
 
         console.log(result)
 
@@ -842,46 +843,54 @@
         localStorage.setItem(selectors.localStorage, JSON.stringify(data));
     }
 
-    function isObject(item) {
-        return (item && typeof item === 'object' && !Array.isArray(item));
-    }
+    function makeUtilsModule() {
+        return {
+            isObject,
+            mergeDeep,
+            formatTimestamp
+        }
 
-    // copy pasta from https://stackoverflow.com/a/34749873/276681
-    // didn't want to pull in lodash just yet
-    function mergeDeep(target, ...sources) {
-        if (!sources.length) return target;
-        const source = sources.shift();
+        function isObject(item) {
+            return (item && typeof item === 'object' && !Array.isArray(item));
+        }
 
-        if (isObject(target) && isObject(source)) {
-            for (const key in source) {
-                if (isObject(source[key])) {
-                    if (!target[key]) Object.assign(target, { [key]: {} });
-                    mergeDeep(target[key], source[key]);
-                } else {
-                    Object.assign(target, { [key]: source[key] });
+        // copy pasta from https://stackoverflow.com/a/34749873/276681
+        // didn't want to pull in lodash just yet
+        function mergeDeep(target, ...sources) {
+            if (!sources.length) return target;
+            const source = sources.shift();
+
+            if (isObject(target) && isObject(source)) {
+                for (const key in source) {
+                    if (isObject(source[key])) {
+                        if (!target[key]) Object.assign(target, { [key]: {} });
+                        mergeDeep(target[key], source[key]);
+                    } else {
+                        Object.assign(target, { [key]: source[key] });
+                    }
                 }
             }
+
+            return mergeDeep(target, ...sources);
         }
 
-        return mergeDeep(target, ...sources);
-    }
+        function formatTimestamp(timestamp) {
+            const date = new Date(parseInt(timestamp, 10));
 
-    function formatTimestamp(timestamp) {
-        const date = new Date(parseInt(timestamp, 10));
+            if (isNaN(date.getTime())) {
+                return '';
+            }
 
-        if (isNaN(date.getTime())) {
-            return '';
+            // Extracting the date in YYYY/MM/DD format
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const formattedDate = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+
+            // Extracting the time in 12-hour format with AM/PM
+            const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+            const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date).toLowerCase();  // Convert to lowercase to get "am/pm"
+
+            return `${formattedDate} @ ${formattedTime}`;
         }
-
-        // Extracting the date in YYYY/MM/DD format
-        const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
-        const formattedDate = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
-
-        // Extracting the time in 12-hour format with AM/PM
-        const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
-        const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(date).toLowerCase();  // Convert to lowercase to get "am/pm"
-
-        return `${formattedDate} @ ${formattedTime}`;
     }
 
     function makeDOMModule() {
