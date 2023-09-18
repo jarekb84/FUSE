@@ -35,150 +35,188 @@
     const subvertADown = makeSubvertADownModule();
     const players = makePlayersModule();
     const store = makeStoreModule();
+    const ui = makeUIModule();
 
     const DSTNames = players.getDSTNames();
     await borisChen.runBorisChenAutoUpdate();
-    runAutoUpdate();
-
-    function injectFUSEInfoIntoFantasySite() {
-        const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
-
-        spans.forEach(span => {
-            span.remove();
-        });
-
-        const state = store.getState().data;
-
-        if (window.location.host === 'fantasy.espn.com') {
-            updateESPNPlayerInfo();
-        }
-
-        if (window.location.host === 'football.fantasysports.yahoo.com') {
-            updateYahooPlayerInfo();
-        }
-
-        if (window.location.host === 'fantasy.nfl.com') {
-            updateNFLPlayerInfo();
-        }
-
-        if (window.location.host === 'sleeper.com') {
-            updateSleeperPlayerInfo();
-        }
-
-        if (window.location.host.includes('football.cbssports.com')) {
-            updateCBSPlayerInfo();
-        }
-
-        function updateESPNPlayerInfo() {
-            document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
-            });
-        }
-
-        function updateYahooPlayerInfo() {
-            document.querySelectorAll('.ysf-player-name a').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, 'td', '.ysf-player-detail', { fontWeight: '700' });
-            });
-        }
-
-        function updateNFLPlayerInfo() {
-            document.querySelectorAll('.playerName').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.playerNameAndInfo', 'em', { fontWeight: '900' });
-            });
-        }
-
-        function updateSleeperPlayerInfo() {
-            // matchup page
-            document.querySelectorAll('.matchup-player-item .player-name > div:first-child').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.player-name', '.player-pos', { fontWeight: '900' });
-            });
-
-            // team page
-            document.querySelectorAll('.team-roster-item .player-name').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.cell-player-meta', '.game-schedule-live-description', { fontWeight: '900' });
-            });
-
-            // players page
-            document.querySelectorAll('.player-meta-container .name').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.name-container', '.position', { fontWeight: '900' });
-            });
-
-            // trend page
-            document.querySelectorAll('.trending-list-item .name').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.player-details', '.position', { fontWeight: '900' });
-            });
-
-            // scores page
-            document.querySelectorAll('.scores-content .player-meta .name').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, '.player-meta', '.position', { fontWeight: '900' });
-            });
-        }
-
-        function updateCBSPlayerInfo() {
-            document.querySelectorAll('.playerLink').forEach(playerNameEl => {
-                insertFUSEPlayerInfo(playerNameEl, 'td', 'playerPositionAndTeam', { fontWeight: '900', marginLeft: '2px' });
-            });
-        }
-
-        function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles) {
-            const name = playerNameEl.innerText;
-            const info = constructPlayerInfo(name);
-
-            if (info) {
-                const fuseInfo = createPlayerInfoElement(info, styles);
-
-                const parentElement = playerNameEl.closest(parentSelector);
-                const rowAfterPlayerName = parentElement?.querySelector(rowAfterPlayerNameSelector);
-
-                if (rowAfterPlayerName) {
-                    rowAfterPlayerName.insertBefore(fuseInfo, rowAfterPlayerName.firstChild);
-                } else {
-                    playerNameEl.after(fuseInfo);
-                }
-            }
-        }
-
-        function constructPlayerInfo(name) {
-            let info = [];
-
-            if (!name) {
-                return '';
-            }
-
-            const playerName = name.replace(' D/ST', '')
-
-            const borisChenTier = state.borisChen.parsed[playerName];
-            const subvertADownValue = state.subvertADown.parsed[playerName];
-            const customDataValue = state.customData.parsed[playerName];
-
-            if (borisChenTier) {
-                info.push(`${state.borisChen.prefix || ''}${borisChenTier}`)
-            }
-            if (subvertADownValue) {
-                info.push(`${state.subvertADown.prefix || ''}${subvertADownValue}`)
-            }
-
-            if (customDataValue) {
-                info.push(`${state.customData.prefix || ''}${customDataValue}`)
-            }
-
-            return info.join('/');
-        }
-
-        function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
-            const span = document.createElement('span');
-            span.className = selectors.playerInfo;
-            span.style.marginRight = marginRight;
-            span.style.marginLeft = marginLeft;
-            span.style.fontWeight = fontWeight;
-            span.textContent = info;
-
-            return span;
-        }
-    }
+    ui.autoInjectFUSEOnDOMChange();
 
     dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, settings.editSettings);
 
+    function makeUIModule() {
+        return {
+            autoInjectFUSEOnDOMChange,
+            injectFUSEInfoIntoFantasySite
+        }
+
+        function autoInjectFUSEOnDOMChange() {
+            if (window.fuse?.autoUpdateObserver) {
+                window.fuse.autoUpdateObserver.disconnect();
+            } else {
+                window.fuse = {};
+            }
+
+            // Update player info whenever the user causes the page content to update
+            // ie when applying position filters on the free agents page
+            const observer = new MutationObserver(function () {
+                // pause mutation checks while FUSE updates the page
+                // avoids an infinite loop of updates
+                observer.disconnect();
+
+                injectFUSEInfoIntoFantasySite();
+
+                // resume monitoring for mutations
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            window.fuse.autoUpdateObserver = observer;
+        }
+
+        function injectFUSEInfoIntoFantasySite() {
+            const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
+
+            spans.forEach(span => {
+                span.remove();
+            });
+
+            const state = store.getState().data;
+
+            if (window.location.host === 'fantasy.espn.com') {
+                updateESPNPlayerInfo();
+            }
+
+            if (window.location.host === 'football.fantasysports.yahoo.com') {
+                updateYahooPlayerInfo();
+            }
+
+            if (window.location.host === 'fantasy.nfl.com') {
+                updateNFLPlayerInfo();
+            }
+
+            if (window.location.host === 'sleeper.com') {
+                updateSleeperPlayerInfo();
+            }
+
+            if (window.location.host.includes('football.cbssports.com')) {
+                updateCBSPlayerInfo();
+            }
+
+            function updateESPNPlayerInfo() {
+                document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
+                });
+            }
+
+            function updateYahooPlayerInfo() {
+                document.querySelectorAll('.ysf-player-name a').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, 'td', '.ysf-player-detail', { fontWeight: '700' });
+                });
+            }
+
+            function updateNFLPlayerInfo() {
+                document.querySelectorAll('.playerName').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.playerNameAndInfo', 'em', { fontWeight: '900' });
+                });
+            }
+
+            function updateSleeperPlayerInfo() {
+                // matchup page
+                document.querySelectorAll('.matchup-player-item .player-name > div:first-child').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.player-name', '.player-pos', { fontWeight: '900' });
+                });
+
+                // team page
+                document.querySelectorAll('.team-roster-item .player-name').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.cell-player-meta', '.game-schedule-live-description', { fontWeight: '900' });
+                });
+
+                // players page
+                document.querySelectorAll('.player-meta-container .name').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.name-container', '.position', { fontWeight: '900' });
+                });
+
+                // trend page
+                document.querySelectorAll('.trending-list-item .name').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.player-details', '.position', { fontWeight: '900' });
+                });
+
+                // scores page
+                document.querySelectorAll('.scores-content .player-meta .name').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, '.player-meta', '.position', { fontWeight: '900' });
+                });
+            }
+
+            function updateCBSPlayerInfo() {
+                document.querySelectorAll('.playerLink').forEach(playerNameEl => {
+                    insertFUSEPlayerInfo(playerNameEl, 'td', 'playerPositionAndTeam', { fontWeight: '900', marginLeft: '2px' });
+                });
+            }
+
+            function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles) {
+                const name = playerNameEl.innerText;
+                const info = constructPlayerInfo(name);
+
+                if (info) {
+                    const fuseInfo = createPlayerInfoElement(info, styles);
+
+                    const parentElement = playerNameEl.closest(parentSelector);
+                    const rowAfterPlayerName = parentElement?.querySelector(rowAfterPlayerNameSelector);
+
+                    if (rowAfterPlayerName) {
+                        rowAfterPlayerName.insertBefore(fuseInfo, rowAfterPlayerName.firstChild);
+                    } else {
+                        playerNameEl.after(fuseInfo);
+                    }
+                }
+            }
+
+            function constructPlayerInfo(name) {
+                let info = [];
+
+                if (!name) {
+                    return '';
+                }
+
+                const playerName = name.replace(' D/ST', '')
+
+                const borisChenTier = state.borisChen.parsed[playerName];
+                const subvertADownValue = state.subvertADown.parsed[playerName];
+                const customDataValue = state.customData.parsed[playerName];
+
+                if (borisChenTier) {
+                    info.push(`${state.borisChen.prefix || ''}${borisChenTier}`)
+                }
+                if (subvertADownValue) {
+                    info.push(`${state.subvertADown.prefix || ''}${subvertADownValue}`)
+                }
+
+                if (customDataValue) {
+                    info.push(`${state.customData.prefix || ''}${customDataValue}`)
+                }
+
+                return info.join('/');
+            }
+
+            function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
+                const span = document.createElement('span');
+                span.className = selectors.playerInfo;
+                span.style.marginRight = marginRight;
+                span.style.marginLeft = marginLeft;
+                span.style.fontWeight = fontWeight;
+                span.textContent = info;
+
+                return span;
+            }
+        }
+    }
     function makeStoreModule() {
         return {
             getState,
@@ -370,7 +408,7 @@
 
                 store.saveState(state);
                 hideSettings();
-                injectFUSEInfoIntoFantasySite();
+                ui.injectFUSEInfoIntoFantasySite();
             });
 
             settingsPanel.appendChild(saveBtn);
@@ -1109,35 +1147,5 @@
         }
     }
 
-    function runAutoUpdate() {
-        if (window.fuse?.autoUpdateObserver) {
-            window.fuse.autoUpdateObserver.disconnect();
-        } else {
-            window.fuse = {};
-        }
-
-        // Update player info whenever the user causes the page content to update
-        // ie when applying position filters on the free agents page
-        const observer = new MutationObserver(function () {
-            // pause mutation checks while FUSE updates the page
-            // avoids an infinite loop of updates
-            observer.disconnect();
-
-            injectFUSEInfoIntoFantasySite();
-
-            // resume monitoring for mutations
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        window.fuse.autoUpdateObserver = observer;
-    }
 }
 )();
