@@ -15,38 +15,47 @@
 
 (async function () {
     const version = 'VERSION_PLACEHOLDER';
-    const selectors = {
-        playerInfo: 'fusePlayerInfo',
-        showSettingsBtn: 'fuseShowSettings',
-        settingPanel: {
-            name: 'fuseSettingsPanel',
-            tabs: 'fuseSettingsPanel__tabs',
-            borisChen: 'fuseSettingsPanel__tabs__borisChen',
-            subvertADown: 'fuseSettingsPanel__tabs__subvertADown',
-            customData: 'fuseSettingsPanel__tabs__customData'
-        },
-        localStorage: 'fuseStorage'
-    }
+
+    const store = makeStoreModule();
+    const ui = makeUIModule();
     const dom = makeDOMModule();
     const utils = makeUtilsModule();
+
     const settings = makeSettingsModule();
     const borisChen = makeBorisChenModule();
     const customData = makeCustomDataModule();
     const subvertADown = makeSubvertADownModule();
     const players = makePlayersModule();
-    const store = makeStoreModule();
-    const ui = makeUIModule();
 
     const DSTNames = players.getDSTNames();
     await borisChen.runBorisChenAutoUpdate();
     ui.autoInjectFUSEOnDOMChange();
 
-    dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, settings.editSettings);
+    const showSettingsBtn = dom.makePageButton('fuseShowSettings', '⚙', 100, settings.editSettings);
 
     function makeUIModule() {
-        return {
+        const self = {
             autoInjectFUSEOnDOMChange,
-            injectFUSEInfoIntoFantasySite
+            injectFUSEInfoIntoFantasySite,
+            makeSelector,
+            selectors: {
+                playerInfo: 'fusePlayerInfo'
+            }
+        }
+
+        return self;
+
+        function makeSelector(idBase, attribute = 'value') {
+            return {
+                id: `${idBase}`,
+                get: () => document.getElementById(`${idBase}`),
+                getValue: function () {
+                    return this.get() ? this.get()[attribute] : null;
+                },
+                setValue: function (value) {
+                    return this.get().setAttribute(attribute, value);
+                }
+            };
         }
 
         function autoInjectFUSEOnDOMChange() {
@@ -81,7 +90,7 @@
         }
 
         function injectFUSEInfoIntoFantasySite() {
-            const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
+            const spans = document.querySelectorAll(`.${self.selectors.playerInfo}`);
 
             spans.forEach(span => {
                 span.remove();
@@ -207,7 +216,7 @@
 
             function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
                 const span = document.createElement('span');
-                span.className = selectors.playerInfo;
+                span.className = self.selectors.playerInfo;
                 span.style.marginRight = marginRight;
                 span.style.marginLeft = marginLeft;
                 span.style.fontWeight = fontWeight;
@@ -218,12 +227,18 @@
         }
     }
     function makeStoreModule() {
-        return {
+        const self = {
             getState,
-            saveState
+            saveState,
+            selectors: {
+                localStorage: 'fuseStorage'
+            }
         }
+
+        return self;
+
         function getState() {
-            const storedData = localStorage.getItem(selectors.localStorage);
+            const storedData = localStorage.getItem(self.selectors.localStorage);
             const parsedData = JSON.parse(storedData) || {};
 
             // TODO these defaults should come from the module definition
@@ -258,7 +273,7 @@
         }
 
         function saveState(data) {
-            localStorage.setItem(selectors.localStorage, JSON.stringify(data));
+            localStorage.setItem(self.selectors.localStorage, JSON.stringify(data));
         }
     }
 
@@ -356,13 +371,19 @@
         }
     }
     function makeSettingsModule() {
-        return {
+        const self = {
             editSettings,
-            hideSettings
+            hideSettings,
+            selectors: {
+                panel: ui.makeSelector('fuseSettingsPanel'),
+                tabs: ui.makeSelector('fuseSettingsPanel__tabs'),
+            }
         }
 
+        return self;
+
         function editSettings() {
-            if (document.getElementById(selectors.settingPanel.name)) {
+            if (self.selectors.panel.get()) {
                 hideSettings();
 
                 return;
@@ -371,7 +392,7 @@
             let settingsPanel = createMainSettingsPanel();
             const state = store.getState().data
 
-            const borisChenTab = borisChen.settingsPanel.createBorisChenTab(state.borisChen)
+            const borisChenTab = borisChen.settingsPanel.createTab(state.borisChen)
 
             // TODO move this inside the module definition...maybe
             const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
@@ -398,7 +419,7 @@
                 // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
                 let state = store.getState();
 
-                state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
+                state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getFormData() };
                 state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
 
                 state.data.subvertADown = { ...state.data.subvertADown, ...subvertADown.settingsPanel.getSubvertADownFormData() };
@@ -416,7 +437,7 @@
             settingsPanel.appendChild(dom.makeButton('Hide', hideSettings));
             settingsPanel.appendChild(createVersionElement());
 
-            document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
+            document.body.insertBefore(settingsPanel, document.getElementById(showSettingsBtn.id).nextSibling);
             toggleTabs(borisChenTab.id);
 
             function createVersionElement() {
@@ -432,7 +453,7 @@
             function createMainSettingsPanel() {
                 const settingsPanel = document.createElement('div');
 
-                settingsPanel.setAttribute('id', selectors.settingPanel.name);
+                settingsPanel.setAttribute('id', self.selectors.panel.id);
                 settingsPanel.style.position = 'fixed';
                 settingsPanel.style.top = '125px';
                 settingsPanel.style.right = '0';
@@ -450,7 +471,7 @@
             }
 
             function hideAllTabs() {
-                const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
+                const tabs = document.querySelectorAll(`.${self.selectors.tabs.id}`);
 
                 tabs.forEach(tab => {
                     tab.style.display = 'none';
@@ -469,28 +490,31 @@
         }
 
         function hideSettings() {
-            document.body.removeChild(document.getElementById(selectors.settingPanel.name));
+            document.body.removeChild(self.selectors.panel.get());
         }
     }
 
     function makeBorisChenModule() {
-        // TODO rename functions to remove the redundant borischen term
+        function borisChenSelector(id, attribute) {
+            return ui.makeSelector(`${settings.selectors.tabs.id}__borisChen_${id}`, attribute);
+        }
+
         const self = {
             runBorisChenAutoUpdate,
             parseBorischenRawData,
             settingsPanel: {
-                createBorisChenTab,
-                getBorischenFormData,
+                createTab,
+                getFormData,
                 selectors: {
-                    tab: ui.makeSelector(`${selectors.settingPanel.borisChen}_tab`),
-                    prefix: ui.makeSelector(`${selectors.settingPanel.borisChen}_prefix`),
-                    scoring: ui.makeSelector(`${selectors.settingPanel.borisChen}_scoring`),
-                    autoFetch: ui.makeSelector(`${selectors.settingPanel.borisChen}_autoFetch`),
-                    lastFetched: ui.makeSelector(`${selectors.settingPanel.borisChen}_lastFetched`, 'data-state'),
-                    fetchDataBtn: ui.makeSelector(`${selectors.settingPanel.borisChen}_fetchDataBtn`),
+                    tab: borisChenSelector('tab'),
+                    prefix: borisChenSelector('prefix'),
+                    scoring: borisChenSelector('scoring'),
+                    autoFetch: borisChenSelector('autoFetch'),
+                    lastFetched: borisChenSelector('lastFetched', 'data-state'),
+                    fetchDataBtn: borisChenSelector('fetchDataBtn'),
                     positions: {
-                        id: (position) => `${selectors.settingPanel.borisChen}_${position}`,
-                        get: (position) => document.getElementById(`${selectors.settingPanel.borisChen}_${position}`),
+                        id: (position) => `${settings.selectors.tabs.id}_borisChen_${position}`,
+                        get: (position) => document.getElementById(`${settings.selectors.tabs.id}_borisChen_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : null;
@@ -648,7 +672,7 @@
             }
         }
 
-        function createBorisChenTab(savedData) {
+        function createTab(savedData) {
             const { selectors } = self.settingsPanel;
             const tab = dom.makeTabElement(
                 selectors.tab.id,
@@ -737,7 +761,7 @@
             return tab;
         }
 
-        function getBorischenFormData() {
+        function getFormData() {
             const { selectors } = self.settingsPanel;
             const data = {
                 raw: {},
@@ -758,22 +782,42 @@
     }
 
     function makeSubvertADownModule() {
-        return {
+        function subvertADownSelector(id, attribute) {
+            return ui.makeSelector(`${settings.selectors.tabs.id}__subvertADown_${id}`, attribute);
+        }
+
+        const self = {
             settingsPanel: {
                 createSubvertADownTab,
                 getSubvertADownFormData,
-                parseSubvertADownFormRawData
+                parseSubvertADownFormRawData,
+                selectors: {
+                    tab: subvertADownSelector('tab'),
+                    prefix: subvertADownSelector('prefix'),
+                    raw: subvertADownSelector('raw'),
+                    positions: {
+                        id: (position) => `${settings.selectors.tabs.id}_subvertADown_${position}`,
+                        get: (position) => document.getElementById(`${settings.selectors.tabs.id}_subvertADown_${position}`),
+                        getValue: function (position) {
+                            const el = this.get(position);
+                            return el ? el.value : null;
+                        }
+                    }
+                }
             }
         }
+
+        return self;
+
         function createSubvertADownTab(savedData) {
             const tab = dom.makeTabElement(
-                selectors.settingPanel.subvertADown,
+                self.settingsPanel.selectors.tab.id,
                 "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
             );
 
             const prefixField = dom.makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.subvertADown}_prefix`,
+                self.settingsPanel.selectors.prefix.id,
                 'Ex: SD',
                 savedData.prefix,
             );
@@ -785,7 +829,7 @@
             for (const position of positions) {
                 const positionField = dom.makeTextAreaField(
                     position,
-                    `${selectors.settingPanel.subvertADown}_${position}`,
+                    self.settingsPanel.selectors.positions.id(position),
                     savedData.raw[position],
                 );
 
@@ -798,13 +842,13 @@
         function getSubvertADownFormData() {
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.subvertADown}_prefix`).value
+                prefix: self.settingsPanel.selectors.prefix.getValue(),
             };
 
             const positions = ['QB', 'DST', 'K'];
 
             for (const position of positions) {
-                data.raw[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
+                data.raw[position] = self.settingsPanel.selectors.positions.getValue(position)
             }
 
             return data;
@@ -850,23 +894,39 @@
     }
 
     function makeCustomDataModule() {
-        return {
+        function customDataSelector(id, attribute) {
+            return ui.makeSelector(`${settings.selectors.tabs.id}__customData_${id}`, attribute);
+        }
+
+        const self = {
             settingsPanel: {
                 createCustomDataTab,
                 getCustomDataFormData,
-                parseCustomDataFormData
+                parseCustomDataFormData,
+                selectors: {
+                    tab: customDataSelector('tab'),
+                    prefix: customDataSelector('prefix'),
+                    raw: customDataSelector('raw'),
+                    delimiter: customDataSelector('delimiter'),
+                    playerColumn: customDataSelector('playerColumn'),
+                    displayColumn: customDataSelector('displayColumn'),
+                    custom: customDataSelector('custom'),
+                }
             }
         }
 
+        return self;
+
         function createCustomDataTab(savedData) {
+            const { selectors } = self.settingsPanel;
             const tab = dom.makeTabElement(
-                selectors.settingPanel.customData,
+                selectors.tab.id,
                 "Paste in your own data from a spreadsheet or another website."
             );
 
             const prefixField = dom.makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.customData}_prefix`,
+                selectors.prefix.id,
                 'Ex: C',
                 savedData.prefix,
             );
@@ -879,7 +939,7 @@
 
             const delimiterField = dom.makeDropdownField(
                 'Delimiter',
-                `${selectors.settingPanel.customData}_delimiter`,
+                selectors.delimiter.id,
                 ['Tab', 'Space', 'Comma'],
                 savedData.delimiter
             );
@@ -887,7 +947,7 @@
 
             const playerColumnField = dom.makeDropdownField(
                 'Player Column',
-                `${selectors.settingPanel.customData}_playerColumn`,
+                selectors.playerColumn.id,
                 Array(20).fill().map((_, i) => i + 1),
                 savedData.playerColumn
             );
@@ -895,7 +955,7 @@
 
             const displayColumnField = dom.makeDropdownField(
                 'Display Columns',
-                `${selectors.settingPanel.customData}_displayColumn`,
+                selectors.displayColumn.id,
                 ['All', ...Array(20).fill().map((_, i) => i + 1)],
                 savedData.displayColumn
             );
@@ -905,7 +965,7 @@
 
             const positionField = dom.makeTextAreaField(
                 'Custom',
-                `${selectors.settingPanel.customData}_custom`,
+                selectors.custom.id,
                 savedData.raw['custom'],
                 { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
             );
@@ -916,15 +976,16 @@
         }
 
         function getCustomDataFormData() {
+            const { selectors } = self.settingsPanel;
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.customData}_prefix`).value,
-                delimiter: document.getElementById(`${selectors.settingPanel.customData}_delimiter`).value,
-                playerColumn: document.getElementById(`${selectors.settingPanel.customData}_playerColumn`).value,
-                displayColumn: document.getElementById(`${selectors.settingPanel.customData}_displayColumn`).value
+                prefix: selectors.prefix.getValue(),
+                delimiter: selectors.delimiter.getValue(),
+                playerColumn: selectors.playerColumn.getValue(),
+                displayColumn: selectors.displayColumn.getValue()
             };
 
-            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.customData}_custom`).value;
+            data.raw['custom'] = selectors.custom.getValue();
 
             return data;
         }
@@ -1022,21 +1083,7 @@
             makeReadOnlyField,
             makeInputField,
             makeTextAreaField,
-            makeDropdownField,
-            makeSelector
-        }
-
-        function makeSelector(idBase, attribute = 'value') {
-            return {
-                id: `${idBase}`,
-                get: () => document.getElementById(`${idBase}`),
-                getValue: function () {
-                    return this.get() ? this.get()[attribute] : null;
-                },
-                setValue: function (value) {
-                    return this.get().setAttribute(attribute, value);
-                }
-            };
+            makeDropdownField
         }
 
         function makePageButton(id, text, offset, onClick) {
@@ -1083,7 +1130,7 @@
         function makeTabElement(id, content) {
             const tab = document.createElement('div');
             tab.id = id;
-            tab.className = selectors.settingPanel.tabs;
+            tab.className = settings.selectors.tabs.id;
             tab.style.padding = '10px';
             tab.style.maxHeight = '70vh';
             tab.style.overflowY = 'auto';
