@@ -7,7 +7,7 @@ FUSE easily integrates BorisChen tiers, SubvertADown streaming values, and your 
 | ![ESPN Team Overview](/dist/assets/espn_team_overview.png) | ![Yahoo Roster Overview](/dist/assets/yahoo_roster_overview.png) | ![NFL.com My Team Overview](/dist/assets/nfl_my_team_overview.png) | ![Sleeper Team Overview](/dist/assets/sleeper_team_overview.png) | ![CBS Team Overview](/dist/assets/cbs_team_overview.png) |
 
 
-https://github.com/jarekb84/FUSE/assets/667983/766e9f9a-fc4a-4e20-9eda-1192c00729e4
+https://github.com/jarekb84/FUSE/assets/667983/c42edb0d-abf7-4f93-854f-b270c9084d84
 
 
 ## Features
