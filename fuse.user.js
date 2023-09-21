@@ -50,7 +50,11 @@
                 id: `${idBase}`,
                 get: () => document.getElementById(`${idBase}`),
                 getValue: function () {
-                    return this.get() ? this.get()[attribute] : null;
+                    if (attribute === 'value'){
+                        return this.get() ? this.get()[attribute] : null;
+                    }
+
+                    return this.get() ? this.get().getAttribute(attribute) : null;
                 },
                 setValue: function (value) {
                     return this.get().setAttribute(attribute, value);
