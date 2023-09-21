@@ -91,12 +91,11 @@
 
         function injectFUSEInfoIntoFantasySite() {
             const spans = document.querySelectorAll(`.${self.selectors.playerInfo}`);
+            const state = store.getState().data;
 
             spans.forEach(span => {
                 span.remove();
             });
-
-            const state = store.getState().data;
 
             if (window.location.host === 'fantasy.espn.com') {
                 updateESPNPlayerInfo();
@@ -188,30 +187,19 @@
             }
 
             function constructPlayerInfo(name) {
-                let info = [];
-
                 if (!name) {
                     return '';
                 }
 
-                const playerName = name.replace(' D/ST', '')
+                const playerName = name.replace(' D/ST', '');
 
-                const borisChenTier = state.borisChen.parsed[playerName];
-                const subvertADownValue = state.subvertADown.parsed[playerName];
-                const customDataValue = state.customData.parsed[playerName];
+                let info = [
+                    borisChen.getPlayerInfo(state.borisChen, playerName),
+                    subvertADown.getPlayerInfo(state.subvertADown, playerName),
+                    customData.getPlayerInfo(state.customData, playerName),
+                ];
 
-                if (borisChenTier) {
-                    info.push(`${state.borisChen.prefix || ''}${borisChenTier}`)
-                }
-                if (subvertADownValue) {
-                    info.push(`${state.subvertADown.prefix || ''}${subvertADownValue}`)
-                }
-
-                if (customDataValue) {
-                    info.push(`${state.customData.prefix || ''}${customDataValue}`)
-                }
-
-                return info.join('/');
+                return info.filter(i => i).join('/');
             }
 
             function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
@@ -478,6 +466,7 @@
             runBorisChenAutoUpdate,
             getDefaultState,
             updateState,
+            getPlayerInfo,
             settingsPanel: {
                 createTab,
                 selectors: {
@@ -521,6 +510,14 @@
             newState.parsed = parseBorischenRawData(newState.raw, newState);
 
             return newState;
+        }
+
+        function getPlayerInfo(state, playerName) {
+            let playerInfo = state.parsed[playerName];
+
+            if (!playerInfo) return;
+
+            return `${state.prefix || ''}${playerInfo}`
         }
 
         async function runBorisChenAutoUpdate() {
@@ -784,6 +781,7 @@
         const self = {
             getDefaultState,
             updateState,
+            getPlayerInfo,
             settingsPanel: {
                 createSubvertADownTab,
                 selectors: {
@@ -822,7 +820,13 @@
             return newState;
         }
 
+        function getPlayerInfo(state, playerName) {
+            let playerInfo = state.parsed[playerName];
+            
+            if (!playerInfo) return;
 
+            return `${state.prefix || ''}${playerInfo}`
+        }
         function createSubvertADownTab(savedData) {
             const tab = dom.makeTabElement(
                 self.settingsPanel.selectors.tab.id,
@@ -915,6 +919,7 @@
         const self = {
             getDefaultState,
             updateState,
+            getPlayerInfo,
             settingsPanel: {
                 createCustomDataTab,
                 selectors: {
@@ -949,6 +954,14 @@
             newState.parsed = parseCustomDataFormData(newState.raw, newState);
 
             return newState;
+        }
+
+        function getPlayerInfo(state, playerName) {
+            let playerInfo = state.parsed[playerName];
+            
+            if (!playerInfo) return;
+
+            return `${state.prefix || ''}${playerInfo}`
         }
 
         function createCustomDataTab(savedData) {
