@@ -23,8 +23,8 @@
 
     const settings = makeSettingsModule();
     const borisChen = makeBorisChenModule();
-    const customData = makeCustomDataModule();
     const subvertADown = makeSubvertADownModule();
+    const customData = makeCustomDataModule();
     const players = makePlayersModule();
 
     const DSTNames = players.getDSTNames();
@@ -240,28 +240,11 @@
         function getState() {
             const storedData = localStorage.getItem(self.selectors.localStorage);
             const parsedData = JSON.parse(storedData) || {};
-
-            // TODO these defaults should come from the module definition
             let defaults = {
                 data: {
-                    borisChen: {
-                        raw: {},
-                        parsed: {},
-                        scoring: 'Standard',
-                        autoFetch: 'Daily',
-                        lastFetched: ''
-                    },
-                    subvertADown: {
-                        raw: {},
-                        parsed: {}
-                    },
-                    customData: {
-                        raw: {},
-                        parsed: {},
-                        delimiter: 'Tab',
-                        playerColumn: 1,
-                        displayColumn: 'All'
-                    }
+                    borisChen: borisChen.getDefaultState(),
+                    subvertADown: subvertADown.getDefaultState(),
+                    customData: customData.getDefaultState()
                 }
             };
 
@@ -393,8 +376,6 @@
             const state = store.getState().data
 
             const borisChenTab = borisChen.settingsPanel.createTab(state.borisChen)
-
-            // TODO move this inside the module definition...maybe
             const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
                 toggleTabs(borisChenTab.id)
             });
@@ -416,17 +397,11 @@
             settingsPanel.appendChild(customDataTab);
 
             const saveBtn = dom.makeButton('Save', () => {
-                // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
                 let state = store.getState();
 
-                state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getFormData() };
-                state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
-
-                state.data.subvertADown = { ...state.data.subvertADown, ...subvertADown.settingsPanel.getSubvertADownFormData() };
-                state.data.subvertADown.parsed = subvertADown.settingsPanel.parseSubvertADownFormRawData(state.data.subvertADown.raw);
-
-                state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
-                state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
+                state.data.borisChen = borisChen.updateState(state.data.borisChen)
+                state.data.subvertADown = subvertADown.updateState(state.data.subvertADown)
+                state.data.customData = customData.updateState(state.data.customData)
 
                 store.saveState(state);
                 hideSettings();
@@ -501,10 +476,10 @@
 
         const self = {
             runBorisChenAutoUpdate,
-            parseBorischenRawData,
+            getDefaultState,
+            updateState,
             settingsPanel: {
                 createTab,
-                getFormData,
                 selectors: {
                     tab: borisChenSelector('tab'),
                     prefix: borisChenSelector('prefix'),
@@ -529,6 +504,25 @@
 
         return self;
 
+        function getDefaultState() {
+            return {
+                raw: {},
+                parsed: {},
+                scoring: 'Standard',
+                autoFetch: 'Daily',
+                lastFetched: ''
+            }
+        }
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getFormData()
+            }
+
+            newState.parsed = parseBorischenRawData(newState.raw, newState);
+
+            return newState;
+        }
+
         async function runBorisChenAutoUpdate() {
             let state = store.getState();
             const isDaily = state.data.borisChen.autoFetch === 'Daily';
@@ -542,7 +536,7 @@
 
             const lastFetched = parseInt(state.data.borisChen.lastFetched, 10);
             const currentTime = Date.now();
-            const twentyFourHoursInMs = 24 * 60 * 60 * 100;
+            const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
 
             const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
 
@@ -723,7 +717,6 @@
                 );
                 lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
-                // TODO bits of this still are broken, auto fetch/last fetched not showing, last fetched value missing
                 const fetchDataBtn = dom.makeButton('Fetch', async () => {
                     const btn = selectors.fetchDataBtn.get();
                     btn.disabled = true;
@@ -740,9 +733,7 @@
                     for (const position of positions) {
                         selectors.positions.setValue(position, rawData[position]);
                     }
-                });
-                // TODO move this into the makeButton method
-                fetchDataBtn.id = selectors.fetchDataBtn.id;
+                }, selectors.fetchDataBtn.id);
 
                 dataSettings.appendChild(scoringField);
                 dataSettings.appendChild(autoFetchField);
@@ -791,10 +782,10 @@
         }
 
         const self = {
+            getDefaultState,
+            updateState,
             settingsPanel: {
                 createSubvertADownTab,
-                getSubvertADownFormData,
-                parseSubvertADownFormRawData,
                 selectors: {
                     tab: subvertADownSelector('tab'),
                     prefix: subvertADownSelector('prefix'),
@@ -812,6 +803,25 @@
         }
 
         return self;
+
+        function getDefaultState() {
+            return {
+                raw: {},
+                parsed: {}
+            }
+        }
+
+
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getSubvertADownFormData()
+            }
+
+            newState.parsed = parseSubvertADownFormRawData(newState.raw, newState);
+
+            return newState;
+        }
+
 
         function createSubvertADownTab(savedData) {
             const tab = dom.makeTabElement(
@@ -903,10 +913,10 @@
         }
 
         const self = {
+            getDefaultState,
+            updateState,
             settingsPanel: {
                 createCustomDataTab,
-                getCustomDataFormData,
-                parseCustomDataFormData,
                 selectors: {
                     tab: customDataSelector('tab'),
                     prefix: customDataSelector('prefix'),
@@ -920,6 +930,26 @@
         }
 
         return self;
+
+        function getDefaultState() {
+            return {
+                raw: {},
+                parsed: {},
+                delimiter: 'Tab',
+                playerColumn: 1,
+                displayColumn: 'All'
+            }
+        }
+
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getCustomDataFormData()
+            }
+
+            newState.parsed = parseCustomDataFormData(newState.raw, newState);
+
+            return newState;
+        }
 
         function createCustomDataTab(savedData) {
             const { selectors } = self.settingsPanel;
@@ -1097,8 +1127,7 @@
                 existingBtn.remove();
             }
 
-            const button = makeButton(text, onClick);
-            button.id = id;
+            const button = makeButton(text, onClick, id);
 
             button.style.position = 'fixed';
             button.style.top = `${offset}px`;
@@ -1116,9 +1145,9 @@
             return button;
         }
 
-        function makeButton(text, onClick) {
+        function makeButton(text, onClick, id) {
             const button = document.createElement('button');
-
+            button.id = id;
             button.innerHTML = text;
             button.style.padding = '5px';
             button.style.marginRight = '5px';
@@ -1236,6 +1265,5 @@
             return field;
         }
     }
-
 }
 )();
