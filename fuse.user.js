@@ -462,6 +462,12 @@
             return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__borisChen_${id}`, attribute);
         }
 
+        const scoreSuffix = {
+            "Standard": "",
+            "0.5 PPR": "-HALF",
+            "PPR": "-PPR"
+        }
+
         const self = {
             runBorisChenAutoUpdate,
             getDefaultState,
@@ -617,12 +623,6 @@
         }
 
         async function fetchDataFromBorisChenWebsite(scoring) {
-            const scoreSuffix = {
-                "PPR": "-PPR",
-                "0.5 PPR": "-HALF",
-                "Standard": ""
-            }
-
             const positionsToGet = [
                 { key: 'QB', val: `QB` },
                 { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
@@ -691,7 +691,7 @@
                 const scoringField = DOM.makeDropdownField(
                     'Scoring',
                     selectors.scoring.id,
-                    ['Standard', '0.5 PPR', 'PPR'],
+                    Object.keys(scoreSuffix),
                     savedData.scoring
                 );
 
