@@ -534,7 +534,7 @@
             let state = STORE.getState();
             const isDaily = state.data.borisChen.autoFetch === 'Daily';
             const hasBeenFetched = !!state.data.borisChen.lastFetched;
-            const ranAsUserScript = !!window.GM?.info
+            const ranAsUserScript = !!GM?.info
             const eligibleForAutoUpdate = isDaily && hasBeenFetched && ranAsUserScript;
 
             if (!eligibleForAutoUpdate) {
@@ -686,7 +686,7 @@
 
             tab.appendChild(prefixField);
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
-            if (window.GM?.info) {
+            if (GM?.info) {
                 const dataSettings = document.createElement('div');
                 dataSettings.style.display = 'flex';
                 dataSettings.style.justifyContent = 'space-between';
