@@ -1270,7 +1270,7 @@
                 optionElement.value = option;
                 optionElement.textContent = option;
 
-                if (option.toString() === selectedValue.toString()) {
+                if (option.toString() === selectedValue?.toString()) {
                     optionElement.selected = true;
                 }
 
