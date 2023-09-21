@@ -15,38 +15,51 @@
 
 (async function () {
     const version = 'VERSION_PLACEHOLDER';
-    const selectors = {
-        playerInfo: 'fusePlayerInfo',
-        showSettingsBtn: 'fuseShowSettings',
-        settingPanel: {
-            name: 'fuseSettingsPanel',
-            tabs: 'fuseSettingsPanel__tabs',
-            borisChen: 'fuseSettingsPanel__tabs__borisChen',
-            subvertADown: 'fuseSettingsPanel__tabs__subvertADown',
-            customData: 'fuseSettingsPanel__tabs__customData'
-        },
-        localStorage: 'fuseStorage'
-    }
-    const dom = makeDOMModule();
-    const utils = makeUtilsModule();
-    const settings = makeSettingsModule();
-    const borisChen = makeBorisChenModule();
-    const customData = makeCustomDataModule();
-    const subvertADown = makeSubvertADownModule();
-    const players = makePlayersModule();
-    const store = makeStoreModule();
-    const ui = makeUIModule();
 
-    const DSTNames = players.getDSTNames();
-    await borisChen.runBorisChenAutoUpdate();
-    ui.autoInjectFUSEOnDOMChange();
+    const STORE = makeStoreModule();
+    const UI = makeUIModule();
+    const DOM = makeDOMModule();
+    const UTILS = makeUtilsModule();
 
-    dom.makePageButton(selectors.showSettingsBtn, '⚙', 100, settings.editSettings);
+    const SETTINGS = makeSettingsModule();
+    const BORISCHEN = makeBorisChenModule();
+    const SUBVERTADOWN = makeSubvertADownModule();
+    const CUSTOMDATA = makeCustomDataModule();
+    const PLAYERS = makePlayersModule();
+
+    const DSTNames = PLAYERS.getDSTNames();
+    await BORISCHEN.runBorisChenAutoUpdate();
+    UI.autoInjectFUSEOnDOMChange();
+
+    const showSettingsBtn = DOM.makePageButton('fuseShowSettings', '⚙', 100, SETTINGS.editSettings);
 
     function makeUIModule() {
-        return {
+        const self = {
             autoInjectFUSEOnDOMChange,
-            injectFUSEInfoIntoFantasySite
+            injectFUSEInfoIntoFantasySite,
+            makeSelector,
+            selectors: {
+                playerInfo: 'fusePlayerInfo'
+            }
+        }
+
+        return self;
+
+        function makeSelector(idBase, attribute = 'value') {
+            return {
+                id: `${idBase}`,
+                get: () => document.getElementById(`${idBase}`),
+                getValue: function () {
+                    if (attribute === 'value'){
+                        return this.get() ? this.get()[attribute] : null;
+                    }
+
+                    return this.get() ? this.get().getAttribute(attribute) : null;
+                },
+                setValue: function (value) {
+                    return this.get().setAttribute(attribute, value);
+                }
+            };
         }
 
         function autoInjectFUSEOnDOMChange() {
@@ -81,13 +94,12 @@
         }
 
         function injectFUSEInfoIntoFantasySite() {
-            const spans = document.querySelectorAll(`.${selectors.playerInfo}`);
+            const spans = document.querySelectorAll(`.${self.selectors.playerInfo}`);
+            const state = STORE.getState().data;
 
             spans.forEach(span => {
                 span.remove();
             });
-
-            const state = store.getState().data;
 
             if (window.location.host === 'fantasy.espn.com') {
                 updateESPNPlayerInfo();
@@ -179,35 +191,24 @@
             }
 
             function constructPlayerInfo(name) {
-                let info = [];
-
                 if (!name) {
                     return '';
                 }
 
-                const playerName = name.replace(' D/ST', '')
+                const playerName = name.replace(' D/ST', '');
 
-                const borisChenTier = state.borisChen.parsed[playerName];
-                const subvertADownValue = state.subvertADown.parsed[playerName];
-                const customDataValue = state.customData.parsed[playerName];
+                let info = [
+                    BORISCHEN.getPlayerInfo(state.borisChen, playerName),
+                    SUBVERTADOWN.getPlayerInfo(state.subvertADown, playerName),
+                    CUSTOMDATA.getPlayerInfo(state.customData, playerName),
+                ];
 
-                if (borisChenTier) {
-                    info.push(`${state.borisChen.prefix || ''}${borisChenTier}`)
-                }
-                if (subvertADownValue) {
-                    info.push(`${state.subvertADown.prefix || ''}${subvertADownValue}`)
-                }
-
-                if (customDataValue) {
-                    info.push(`${state.customData.prefix || ''}${customDataValue}`)
-                }
-
-                return info.join('/');
+                return info.filter(i => i).join('/');
             }
 
             function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
                 const span = document.createElement('span');
-                span.className = selectors.playerInfo;
+                span.className = self.selectors.playerInfo;
                 span.style.marginRight = marginRight;
                 span.style.marginLeft = marginLeft;
                 span.style.fontWeight = fontWeight;
@@ -218,38 +219,28 @@
         }
     }
     function makeStoreModule() {
-        return {
+        const self = {
             getState,
-            saveState
+            saveState,
+            selectors: {
+                localStorage: 'fuseStorage'
+            }
         }
-        function getState() {
-            const storedData = localStorage.getItem(selectors.localStorage);
-            const parsedData = JSON.parse(storedData) || {};
 
+        return self;
+
+        function getState() {
+            const storedData = localStorage.getItem(self.selectors.localStorage);
+            const parsedData = JSON.parse(storedData) || {};
             let defaults = {
                 data: {
-                    borisChen: {
-                        raw: {},
-                        parsed: {},
-                        scoring: 'Standard',
-                        autoFetch: 'Daily',
-                        lastFetched: ''
-                    },
-                    subvertADown: {
-                        raw: {},
-                        parsed: {}
-                    },
-                    customData: {
-                        raw: {},
-                        parsed: {},
-                        delimiter: 'Tab',
-                        playerColumn: 1,
-                        displayColumn: 'All'
-                    }
+                    borisChen: BORISCHEN.getDefaultState(),
+                    subvertADown: SUBVERTADOWN.getDefaultState(),
+                    customData: CUSTOMDATA.getDefaultState()
                 }
             };
 
-            const result = utils.mergeDeep(defaults, parsedData)
+            const result = UTILS.mergeDeep(defaults, parsedData)
 
             console.log(result)
 
@@ -257,7 +248,7 @@
         }
 
         function saveState(data) {
-            localStorage.setItem(selectors.localStorage, JSON.stringify(data));
+            localStorage.setItem(self.selectors.localStorage, JSON.stringify(data));
         }
     }
 
@@ -355,35 +346,39 @@
         }
     }
     function makeSettingsModule() {
-        return {
+        const self = {
             editSettings,
-            hideSettings
+            hideSettings,
+            selectors: {
+                panel: UI.makeSelector('fuseSettingsPanel'),
+                tabs: UI.makeSelector('fuseSettingsPanel__tabs'),
+            }
         }
 
+        return self;
+
         function editSettings() {
-            if (document.getElementById(selectors.settingPanel.name)) {
+            if (self.selectors.panel.get()) {
                 hideSettings();
 
                 return;
             }
 
             let settingsPanel = createMainSettingsPanel();
-            const state = store.getState().data
+            const state = STORE.getState().data
 
-            const borisChenTab = borisChen.settingsPanel.createBorisChenTab(state.borisChen)
-
-            // TODO move this inside the module definition...maybe
-            const toggleBorisChenTab = dom.makeButton('BorisChen', () => {
+            const borisChenTab = BORISCHEN.settingsPanel.createTab(state.borisChen)
+            const toggleBorisChenTab = DOM.makeButton('BorisChen', () => {
                 toggleTabs(borisChenTab.id)
             });
 
-            const subvertADownTab = subvertADown.settingsPanel.createSubvertADownTab(state.subvertADown);
-            const toggleSubvertADownTab = dom.makeButton('SubvertADown', () => {
+            const subvertADownTab = SUBVERTADOWN.settingsPanel.createSubvertADownTab(state.subvertADown);
+            const toggleSubvertADownTab = DOM.makeButton('SubvertADown', () => {
                 toggleTabs(subvertADownTab.id)
             });
 
-            const customDataTab = customData.settingsPanel.createCustomDataTab(state.customData);
-            const toggleCustomData = dom.makeButton('CustomData', () => {
+            const customDataTab = CUSTOMDATA.settingsPanel.createCustomDataTab(state.customData);
+            const toggleCustomData = DOM.makeButton('CustomData', () => {
                 toggleTabs(customDataTab.id)
             });
             settingsPanel.appendChild(toggleBorisChenTab);
@@ -393,29 +388,23 @@
             settingsPanel.appendChild(subvertADownTab);
             settingsPanel.appendChild(customDataTab);
 
-            const saveBtn = dom.makeButton('Save', () => {
-                // TODO refactor this such that modules register them self with this save handler, and implement the actual save logic internally.
-                let state = store.getState();
+            const saveBtn = DOM.makeButton('Save', () => {
+                let state = STORE.getState();
 
-                state.data.borisChen = { ...state.data.borisChen, ...borisChen.settingsPanel.getBorischenFormData() };
-                state.data.borisChen.parsed = borisChen.parseBorischenRawData(state.data.borisChen.raw);
+                state.data.borisChen = BORISCHEN.updateState(state.data.borisChen)
+                state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown)
+                state.data.customData = CUSTOMDATA.updateState(state.data.customData)
 
-                state.data.subvertADown = { ...state.data.subvertADown, ...subvertADown.settingsPanel.getSubvertADownFormData() };
-                state.data.subvertADown.parsed = subvertADown.settingsPanel.parseSubvertADownFormRawData(state.data.subvertADown.raw);
-
-                state.data.customData = { ...state.data.customData, ...customData.settingsPanel.getCustomDataFormData() };
-                state.data.customData.parsed = customData.settingsPanel.parseCustomDataFormData(state.data.customData.raw, state.data.customData);
-
-                store.saveState(state);
+                STORE.saveState(state);
                 hideSettings();
-                ui.injectFUSEInfoIntoFantasySite();
+                UI.injectFUSEInfoIntoFantasySite();
             });
 
             settingsPanel.appendChild(saveBtn);
-            settingsPanel.appendChild(dom.makeButton('Hide', hideSettings));
+            settingsPanel.appendChild(DOM.makeButton('Hide', hideSettings));
             settingsPanel.appendChild(createVersionElement());
 
-            document.body.insertBefore(settingsPanel, document.getElementById(selectors.showSettingsBtn).nextSibling);
+            document.body.insertBefore(settingsPanel, document.getElementById(showSettingsBtn.id).nextSibling);
             toggleTabs(borisChenTab.id);
 
             function createVersionElement() {
@@ -431,7 +420,7 @@
             function createMainSettingsPanel() {
                 const settingsPanel = document.createElement('div');
 
-                settingsPanel.setAttribute('id', selectors.settingPanel.name);
+                settingsPanel.setAttribute('id', self.selectors.panel.id);
                 settingsPanel.style.position = 'fixed';
                 settingsPanel.style.top = '125px';
                 settingsPanel.style.right = '0';
@@ -449,7 +438,7 @@
             }
 
             function hideAllTabs() {
-                const tabs = document.querySelectorAll(`.${selectors.settingPanel.tabs}`);
+                const tabs = document.querySelectorAll(`.${self.selectors.tabs.id}`);
 
                 tabs.forEach(tab => {
                     tab.style.display = 'none';
@@ -468,23 +457,81 @@
         }
 
         function hideSettings() {
-            document.body.removeChild(document.getElementById(selectors.settingPanel.name));
+            document.body.removeChild(self.selectors.panel.get());
         }
     }
 
     function makeBorisChenModule() {
-        // TODO rename functions to remove the redundant borischen term
-        return {
+        function borisChenSelector(id, attribute) {
+            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__borisChen_${id}`, attribute);
+        }
+
+        const scoreSuffix = {
+            "Standard": "",
+            "0.5 PPR": "-HALF",
+            "PPR": "-PPR"
+        }
+
+        const self = {
             runBorisChenAutoUpdate,
-            parseBorischenRawData,
+            getDefaultState,
+            updateState,
+            getPlayerInfo,
             settingsPanel: {
-                createBorisChenTab,
-                getBorischenFormData,
+                createTab,
+                selectors: {
+                    tab: borisChenSelector('tab'),
+                    prefix: borisChenSelector('prefix'),
+                    scoring: borisChenSelector('scoring'),
+                    autoFetch: borisChenSelector('autoFetch'),
+                    lastFetched: borisChenSelector('lastFetched', 'data-state'),
+                    fetchDataBtn: borisChenSelector('fetchDataBtn'),
+                    positions: {
+                        id: (position) => `${SETTINGS.selectors.tabs.id}_borisChen_${position}`,
+                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_borisChen_${position}`),
+                        getValue: function (position) {
+                            const el = this.get(position);
+                            return el ? el.value : null;
+                        },
+                        setValue: function (position, value) {
+                            return this.get(position).value = value;
+                        }
+                    }
+                }
             }
         }
 
+        return self;
+
+        function getDefaultState() {
+            return {
+                raw: {},
+                parsed: {},
+                scoring: 'Standard',
+                autoFetch: 'Daily',
+                lastFetched: ''
+            }
+        }
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getFormData()
+            }
+
+            newState.parsed = parseBorischenRawData(newState.raw, newState);
+
+            return newState;
+        }
+
+        function getPlayerInfo(state, playerName) {
+            let playerInfo = state.parsed[playerName];
+
+            if (!playerInfo) return;
+
+            return `${state.prefix || ''}${playerInfo}`
+        }
+
         async function runBorisChenAutoUpdate() {
-            let state = store.getState();
+            let state = STORE.getState();
             const isDaily = state.data.borisChen.autoFetch === 'Daily';
             const hasBeenFetched = !!state.data.borisChen.lastFetched;
             const ranAsUserScript = !!window.GM?.info
@@ -496,7 +543,7 @@
 
             const lastFetched = parseInt(state.data.borisChen.lastFetched, 10);
             const currentTime = Date.now();
-            const twentyFourHoursInMs = 24 * 60 * 60 * 100;
+            const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
 
             const isBelow24HoursOld = (currentTime - lastFetched) < twentyFourHoursInMs;
 
@@ -509,7 +556,7 @@
             state.data.borisChen.parsed = parseBorischenRawData(rawData);
             state.data.borisChen.lastFetched = Date.now();
 
-            store.saveState(state);
+            STORE.saveState(state);
 
             return Promise.resolve();
         }
@@ -540,7 +587,7 @@
                     const playersInTier = row[1];
 
                     playersInTier?.split(', ').forEach((player, index) => {
-                        players.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                        PLAYERS.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
                     });
                 });
 
@@ -580,12 +627,6 @@
         }
 
         async function fetchDataFromBorisChenWebsite(scoring) {
-            const scoreSuffix = {
-                "PPR": "-PPR",
-                "0.5 PPR": "-HALF",
-                "Standard": ""
-            }
-
             const positionsToGet = [
                 { key: 'QB', val: `QB` },
                 { key: 'RB', val: `RB${scoreSuffix[scoring]}` },
@@ -629,15 +670,16 @@
             }
         }
 
-        function createBorisChenTab(savedData) {
-            const tab = dom.makeTabElement(
-                selectors.settingPanel.borisChen,
+        function createTab(savedData) {
+            const { selectors } = self.settingsPanel;
+            const tab = DOM.makeTabElement(
+                selectors.tab.id,
                 "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
             );
 
-            const prefixField = dom.makeInputField(
+            const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.borisChen}_prefix`,
+                selectors.prefix.id,
                 'Ex: BC',
                 savedData.prefix,
             );
@@ -650,47 +692,49 @@
                 dataSettings.style.justifyContent = 'space-between';
                 dataSettings.style.marginBottom = '10px';
 
-                const scoringField = dom.makeDropdownField(
+                const scoringField = DOM.makeDropdownField(
                     'Scoring',
-                    `${selectors.settingPanel.borisChen}_scoring`,
-                    ['Standard', '0.5 PPR', 'PPR'],
+                    selectors.scoring.id,
+                    Object.keys(scoreSuffix),
                     savedData.scoring
                 );
 
-                const autoFetchField = dom.makeDropdownField(
+                const autoFetchField = DOM.makeDropdownField(
                     'AutoFetch',
-                    `${selectors.settingPanel.borisChen}_autoFetch`,
+                    selectors.autoFetch.id,
                     ['Never', 'Daily'],
                     savedData.autoFetch
                 );
 
                 autoFetchField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
-                const lastFetchedDateTime = utils.formatTimestamp(savedData.lastFetched)
+                const lastFetchedDateTime = UTILS.formatTimestamp(savedData.lastFetched)
 
-                const lastFetchedField = dom.makeReadOnlyField('Last Fetched', `${selectors.settingPanel.borisChen}_lastFetched`, lastFetchedDateTime, savedData.lastFetched);
+                const lastFetchedField = DOM.makeReadOnlyField(
+                    'Last Fetched',
+                    selectors.lastFetched.id,
+                    lastFetchedDateTime,
+                    savedData.lastFetched
+                );
                 lastFetchedField.style.visibility = !!savedData.lastFetched ? 'visible' : 'hidden';
 
-                const fetchDataBtn = dom.makeButton('Fetch', async () => {
-                    const self = document.getElementById(`${selectors.settingPanel.borisChen}_fetchDataBtn`);
-                    self.disabled = true;
-                    const scoring = document.getElementById(`${selectors.settingPanel.borisChen}_scoring`).value
+                const fetchDataBtn = DOM.makeButton('Fetch', async () => {
+                    const btn = selectors.fetchDataBtn.get();
+                    btn.disabled = true;
+                    const scoring = selectors.scoring.getValue();
                     const rawData = await fetchDataFromBorisChenWebsite(scoring);
-                    self.disabled = false;
+                    btn.disabled = false;
                     const lastFetchedTimestamp = Date.now()
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).setAttribute('data-state', lastFetchedTimestamp)
-                    document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`).textContent = utils.formatTimestamp(lastFetchedTimestamp);
+                    selectors.lastFetched.setValue(lastFetchedTimestamp)
+                    selectors.lastFetched.get().textContent = UTILS.formatTimestamp(lastFetchedTimestamp);
 
                     lastFetchedField.style.visibility = 'visible';
                     autoFetchField.style.visibility = 'visible';
 
                     for (const position of positions) {
-                        let positionInput = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`);
-                        positionInput.value = rawData[position];
+                        selectors.positions.setValue(position, rawData[position]);
                     }
-                });
-                fetchDataBtn.id = `${selectors.settingPanel.borisChen}_fetchDataBtn`;
-
+                }, selectors.fetchDataBtn.id);
 
                 dataSettings.appendChild(scoringField);
                 dataSettings.appendChild(autoFetchField);
@@ -701,9 +745,9 @@
             }
 
             for (const position of positions) {
-                const positionField = dom.makeTextAreaField(
+                const positionField = DOM.makeTextAreaField(
                     position,
-                    `${selectors.settingPanel.borisChen}_${position}`,
+                    selectors.positions.id(position),
                     savedData.raw[position],
                 );
 
@@ -713,19 +757,20 @@
             return tab;
         }
 
-        function getBorischenFormData() {
+        function getFormData() {
+            const { selectors } = self.settingsPanel;
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.borisChen}_prefix`)?.value,
-                scoring: document.getElementById(`${selectors.settingPanel.borisChen}_scoring`)?.value,
-                autoFetch: document.getElementById(`${selectors.settingPanel.borisChen}_autoFetch`)?.value,
-                lastFetched: document.getElementById(`${selectors.settingPanel.borisChen}_lastFetched`)?.getAttribute('data-state')
+                prefix: selectors.prefix.getValue(),
+                scoring: selectors.scoring.getValue(),
+                autoFetch: selectors.autoFetch.getValue(),
+                lastFetched: selectors.lastFetched.getValue()
             };
 
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
 
             for (const position of positions) {
-                data.raw[position] = document.getElementById(`${selectors.settingPanel.borisChen}_${position}`).value;
+                data.raw[position] = selectors.positions.getValue(position);
             }
 
             return data;
@@ -733,22 +778,68 @@
     }
 
     function makeSubvertADownModule() {
-        return {
+        function subvertADownSelector(id, attribute) {
+            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__subvertADown_${id}`, attribute);
+        }
+
+        const self = {
+            getDefaultState,
+            updateState,
+            getPlayerInfo,
             settingsPanel: {
                 createSubvertADownTab,
-                getSubvertADownFormData,
-                parseSubvertADownFormRawData
+                selectors: {
+                    tab: subvertADownSelector('tab'),
+                    prefix: subvertADownSelector('prefix'),
+                    raw: subvertADownSelector('raw'),
+                    positions: {
+                        id: (position) => `${SETTINGS.selectors.tabs.id}_subvertADown_${position}`,
+                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_subvertADown_${position}`),
+                        getValue: function (position) {
+                            const el = this.get(position);
+                            return el ? el.value : null;
+                        }
+                    }
+                }
             }
         }
+
+        return self;
+
+        function getDefaultState() {
+            return {
+                raw: {},
+                parsed: {}
+            }
+        }
+
+
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getSubvertADownFormData()
+            }
+
+            newState.parsed = parseSubvertADownFormRawData(newState.raw, newState);
+
+            return newState;
+        }
+
+        function getPlayerInfo(state, playerName) {
+            let playerInfo = state.parsed[playerName];
+            
+            if (!playerInfo) return;
+
+            return `${state.prefix || ''}${playerInfo}`
+        }
         function createSubvertADownTab(savedData) {
-            const tab = dom.makeTabElement(
-                selectors.settingPanel.subvertADown,
+            const tab = DOM.makeTabElement(
+                self.settingsPanel.selectors.tab.id,
                 "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
             );
 
-            const prefixField = dom.makeInputField(
+            const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.subvertADown}_prefix`,
+                self.settingsPanel.selectors.prefix.id,
                 'Ex: SD',
                 savedData.prefix,
             );
@@ -758,9 +849,9 @@
             const positions = ['DST', 'QB', 'K'];
 
             for (const position of positions) {
-                const positionField = dom.makeTextAreaField(
+                const positionField = DOM.makeTextAreaField(
                     position,
-                    `${selectors.settingPanel.subvertADown}_${position}`,
+                    self.settingsPanel.selectors.positions.id(position),
                     savedData.raw[position],
                 );
 
@@ -773,13 +864,13 @@
         function getSubvertADownFormData() {
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.subvertADown}_prefix`).value
+                prefix: self.settingsPanel.selectors.prefix.getValue(),
             };
 
             const positions = ['QB', 'DST', 'K'];
 
             for (const position of positions) {
-                data.raw[position] = document.getElementById(`${selectors.settingPanel.subvertADown}_${position}`).value;
+                data.raw[position] = self.settingsPanel.selectors.positions.getValue(position)
             }
 
             return data;
@@ -812,7 +903,7 @@
                             player = `${player}`;
                         }
                     } else {
-                        players.addPlayerInfoToDictionary(player, line.trim(), playersDictionary);
+                        PLAYERS.addPlayerInfoToDictionary(player, line.trim(), playersDictionary);
 
                         // reset for next iteration
                         player = ''
@@ -825,23 +916,68 @@
     }
 
     function makeCustomDataModule() {
-        return {
+        function customDataSelector(id, attribute) {
+            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__customData_${id}`, attribute);
+        }
+
+        const self = {
+            getDefaultState,
+            updateState,
+            getPlayerInfo,
             settingsPanel: {
                 createCustomDataTab,
-                getCustomDataFormData,
-                parseCustomDataFormData
+                selectors: {
+                    tab: customDataSelector('tab'),
+                    prefix: customDataSelector('prefix'),
+                    raw: customDataSelector('raw'),
+                    delimiter: customDataSelector('delimiter'),
+                    playerColumn: customDataSelector('playerColumn'),
+                    displayColumn: customDataSelector('displayColumn'),
+                    custom: customDataSelector('custom'),
+                }
             }
         }
 
+        return self;
+
+        function getDefaultState() {
+            return {
+                raw: {},
+                parsed: {},
+                delimiter: 'Tab',
+                playerColumn: 1,
+                displayColumn: 'All'
+            }
+        }
+
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getCustomDataFormData()
+            }
+
+            newState.parsed = parseCustomDataFormData(newState.raw, newState);
+
+            return newState;
+        }
+
+        function getPlayerInfo(state, playerName) {
+            let playerInfo = state.parsed[playerName];
+            
+            if (!playerInfo) return;
+
+            return `${state.prefix || ''}${playerInfo}`
+        }
+
         function createCustomDataTab(savedData) {
-            const tab = dom.makeTabElement(
-                selectors.settingPanel.customData,
+            const { selectors } = self.settingsPanel;
+            const tab = DOM.makeTabElement(
+                selectors.tab.id,
                 "Paste in your own data from a spreadsheet or another website."
             );
 
-            const prefixField = dom.makeInputField(
+            const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
-                `${selectors.settingPanel.customData}_prefix`,
+                selectors.prefix.id,
                 'Ex: C',
                 savedData.prefix,
             );
@@ -852,25 +988,25 @@
             dataSettings.style.justifyContent = 'space-between';
             dataSettings.style.marginBottom = '10px';
 
-            const delimiterField = dom.makeDropdownField(
+            const delimiterField = DOM.makeDropdownField(
                 'Delimiter',
-                `${selectors.settingPanel.customData}_delimiter`,
+                selectors.delimiter.id,
                 ['Tab', 'Space', 'Comma'],
                 savedData.delimiter
             );
             dataSettings.appendChild(delimiterField);
 
-            const playerColumnField = dom.makeDropdownField(
+            const playerColumnField = DOM.makeDropdownField(
                 'Player Column',
-                `${selectors.settingPanel.customData}_playerColumn`,
+                selectors.playerColumn.id,
                 Array(20).fill().map((_, i) => i + 1),
                 savedData.playerColumn
             );
             dataSettings.appendChild(playerColumnField);
 
-            const displayColumnField = dom.makeDropdownField(
+            const displayColumnField = DOM.makeDropdownField(
                 'Display Columns',
-                `${selectors.settingPanel.customData}_displayColumn`,
+                selectors.displayColumn.id,
                 ['All', ...Array(20).fill().map((_, i) => i + 1)],
                 savedData.displayColumn
             );
@@ -878,9 +1014,9 @@
 
             tab.appendChild(dataSettings);
 
-            const positionField = dom.makeTextAreaField(
+            const positionField = DOM.makeTextAreaField(
                 'Custom',
-                `${selectors.settingPanel.customData}_custom`,
+                selectors.custom.id,
                 savedData.raw['custom'],
                 { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
             );
@@ -891,15 +1027,16 @@
         }
 
         function getCustomDataFormData() {
+            const { selectors } = self.settingsPanel;
             const data = {
                 raw: {},
-                prefix: document.getElementById(`${selectors.settingPanel.customData}_prefix`).value,
-                delimiter: document.getElementById(`${selectors.settingPanel.customData}_delimiter`).value,
-                playerColumn: document.getElementById(`${selectors.settingPanel.customData}_playerColumn`).value,
-                displayColumn: document.getElementById(`${selectors.settingPanel.customData}_displayColumn`).value
+                prefix: selectors.prefix.getValue(),
+                delimiter: selectors.delimiter.getValue(),
+                playerColumn: selectors.playerColumn.getValue(),
+                displayColumn: selectors.displayColumn.getValue()
             };
 
-            data.raw['custom'] = document.getElementById(`${selectors.settingPanel.customData}_custom`).value;
+            data.raw['custom'] = selectors.custom.getValue();
 
             return data;
         }
@@ -930,7 +1067,7 @@
                     restOfData.push(columns[savedData.displayColumn - 1]);
                 }
 
-                players.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary);
+                PLAYERS.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary);
             }
 
             return playersDictionary;
@@ -1007,8 +1144,7 @@
                 existingBtn.remove();
             }
 
-            const button = makeButton(text, onClick);
-            button.id = id;
+            const button = makeButton(text, onClick, id);
 
             button.style.position = 'fixed';
             button.style.top = `${offset}px`;
@@ -1026,9 +1162,9 @@
             return button;
         }
 
-        function makeButton(text, onClick) {
+        function makeButton(text, onClick, id) {
             const button = document.createElement('button');
-
+            button.id = id;
             button.innerHTML = text;
             button.style.padding = '5px';
             button.style.marginRight = '5px';
@@ -1044,7 +1180,7 @@
         function makeTabElement(id, content) {
             const tab = document.createElement('div');
             tab.id = id;
-            tab.className = selectors.settingPanel.tabs;
+            tab.className = SETTINGS.selectors.tabs.id;
             tab.style.padding = '10px';
             tab.style.maxHeight = '70vh';
             tab.style.overflowY = 'auto';
@@ -1146,6 +1282,5 @@
             return field;
         }
     }
-
 }
 )();
