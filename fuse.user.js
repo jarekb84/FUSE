@@ -51,10 +51,10 @@
                 get: () => document.getElementById(`${idBase}`),
                 getValue: function () {
                     if (attribute === 'value'){
-                        return this.get() ? this.get()[attribute] : null;
+                        return this.get() ? this.get()[attribute] : '';
                     }
 
-                    return this.get() ? this.get().getAttribute(attribute) : null;
+                    return this.get() ? this.get().getAttribute(attribute) : '';
                 },
                 setValue: function (value) {
                     return this.get().setAttribute(attribute, value);
@@ -491,7 +491,7 @@
                         get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_borisChen_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
-                            return el ? el.value : null;
+                            return el ? el.value : '';
                         },
                         setValue: function (position, value) {
                             return this.get(position).value = value;
@@ -797,7 +797,7 @@
                         get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_subvertADown_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
-                            return el ? el.value : null;
+                            return el ? el.value : '';
                         }
                     }
                 }
