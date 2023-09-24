@@ -195,7 +195,7 @@
                     return '';
                 }
 
-                const playerName = name.replace(' D/ST', '');
+                const playerName = name.replace(' D/ST', '').trim();
 
                 let info = [
                     BORISCHEN.getPlayerInfo(state.borisChen, playerName),
@@ -259,7 +259,7 @@
         }
 
         function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
-            const playerName = player.replace(' III', '').replace(' II', '');
+            const playerName = player.replace(' III', '').replace(' II', '').trim();
             let infoToSave = playerDictionary[playerName]
 
             if (infoToSave) {
@@ -279,7 +279,7 @@
             }
 
             playerDictionary[playerName] = infoToSave;
-            playerDictionary[player] = infoToSave; // some sites do use the II/III name
+            playerDictionary[player.trim()] = infoToSave; // some sites do use the II/III name
 
             const [first, ...rest] = playerName.split(' ');
 
@@ -1066,6 +1066,8 @@
                 } else {
                     restOfData.push(columns[savedData.displayColumn - 1]);
                 }
+
+                restOfData = restOfData.map(d => d.trim());
 
                 PLAYERS.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary);
             }
