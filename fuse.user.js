@@ -1188,24 +1188,7 @@
             button.addEventListener('click', onClick);
 
             return button;
-        }
-
-        function makeTabElement(id, classSelector, content, options) {
-            const tab = document.createElement('div');
-            tab.id = id;
-            tab.className = classSelector;
-            tab.style.cssText += `
-                padding: 10px;
-                max-height: 70vh;
-                overflow-y: auto;
-                display: ${options?.active ? 'block' : 'none'};
-            `;
-
-
-            tab.appendChild(content);
-
-            return tab;
-        }
+        }   
 
         function makeLabelElement(text) {
             const label = document.createElement('label');
@@ -1376,6 +1359,22 @@
                 let tabContent = document.getElementById(`${contentSelector}_content`);
                 tabContent.style.display = 'block';
             }
+        }
+
+        function makeTabElement(id, classSelector, content, options) {
+            const tab = document.createElement('div');
+            tab.id = id;
+            tab.className = classSelector;
+            tab.style.cssText += `
+                padding: 10px;
+                max-height: 70vh;
+                overflow-y: auto;
+                display: ${options?.active ? 'block' : 'none'};
+            `;
+
+            tab.appendChild(content);
+
+            return tab;
         }
     }
 }
