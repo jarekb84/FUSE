@@ -50,7 +50,7 @@
                 id: `${idBase}`,
                 get: () => document.getElementById(`${idBase}`),
                 getValue: function () {
-                    if (attribute === 'value'){
+                    if (attribute === 'value') {
                         return this.get() ? this.get()[attribute] : '';
                     }
 
@@ -209,9 +209,12 @@
             function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
                 const span = document.createElement('span');
                 span.className = self.selectors.playerInfo;
-                span.style.marginRight = marginRight;
-                span.style.marginLeft = marginLeft;
-                span.style.fontWeight = fontWeight;
+                span.style.cssText = `
+                    margin-right: ${marginRight};
+                    margin-left: ${marginLeft};
+                    font-weight: ${fontWeight};
+                `;
+
                 span.textContent = info;
 
                 return span;
@@ -365,6 +368,11 @@
             }
 
             let settingsPanel = createMainSettingsPanel();
+            let contentContainer = document.createElement('div');
+            contentContainer.style.cssText = `
+                padding: 10px;
+            `;
+
             const state = STORE.getState().data
 
             const borisChenTab = BORISCHEN.settingsPanel.createTab(state.borisChen)
@@ -381,12 +389,12 @@
             const toggleCustomData = DOM.makeButton('CustomData', () => {
                 toggleTabs(customDataTab.id)
             });
-            settingsPanel.appendChild(toggleBorisChenTab);
-            settingsPanel.appendChild(toggleSubvertADownTab);
-            settingsPanel.appendChild(toggleCustomData);
-            settingsPanel.appendChild(borisChenTab);
-            settingsPanel.appendChild(subvertADownTab);
-            settingsPanel.appendChild(customDataTab);
+            contentContainer.appendChild(toggleBorisChenTab);
+            contentContainer.appendChild(toggleSubvertADownTab);
+            contentContainer.appendChild(toggleCustomData);
+            contentContainer.appendChild(borisChenTab);
+            contentContainer.appendChild(subvertADownTab);
+            contentContainer.appendChild(customDataTab);
 
             const saveBtn = DOM.makeButton('Save', () => {
                 let state = STORE.getState();
@@ -400,39 +408,45 @@
                 UI.injectFUSEInfoIntoFantasySite();
             });
 
-            settingsPanel.appendChild(saveBtn);
-            settingsPanel.appendChild(DOM.makeButton('Hide', hideSettings));
-            settingsPanel.appendChild(createVersionElement());
+            contentContainer.appendChild(saveBtn);
+            contentContainer.appendChild(DOM.makeButton('Hide', hideSettings));
+            settingsPanel.appendChild(contentContainer);
+            settingsPanel.appendChild(createInfoSection());
 
             document.body.insertBefore(settingsPanel, document.getElementById(showSettingsBtn.id).nextSibling);
             toggleTabs(borisChenTab.id);
 
-            function createVersionElement() {
-                const versionSpan = document.createElement('span');
-                versionSpan.textContent = `v${version}`;
-                versionSpan.style.position = 'absolute';
-                versionSpan.style.bottom = '0';
-                versionSpan.style.right = '0';;
-                versionSpan.style.fontSize = 'smaller';
+            function createInfoSection() {
+                const info = document.createElement('div');
 
-                return versionSpan;
+                info.style.cssText = `
+                    font-size: smaller;
+                    display: flex;
+                    justify-content: space-between;
+                `;
+
+                info.innerHTML = `
+                    <span>Bugs/Feedback in <a href="https://discord.gg/xkGjENez5c" target="_blank">discord</a></span>
+                    <span> v${version}</span>
+                `;
+
+                return info;
             }
             function createMainSettingsPanel() {
                 const settingsPanel = document.createElement('div');
 
                 settingsPanel.setAttribute('id', self.selectors.panel.id);
-                settingsPanel.style.position = 'fixed';
-                settingsPanel.style.top = '125px';
-                settingsPanel.style.right = '0';
-                settingsPanel.style.backgroundColor = '#f9f9f9';
-                settingsPanel.style.width = '410px';
-                settingsPanel.style.padding = '10px';
-                settingsPanel.style.zIndex = '9999999';
-                settingsPanel.style.textAlign = 'left';
-
-                settingsPanel.style.padding = '15px';
-                settingsPanel.style.border = '1px solid #ccc';
-                settingsPanel.style.boxShadow = '0px 0px 10px rgba(0,0,0,0.1)';
+                settingsPanel.style.cssText = `
+                    position: fixed;
+                    top: 125px;
+                    right: 0;
+                    background-color: #f9f9f9;
+                    width: 410px;
+                    z-index: 9999999;
+                    text-align: left;
+                    border: 1px solid #ccc;
+                    box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+                `;
 
                 return settingsPanel
             }
@@ -688,9 +702,11 @@
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
             if (GM?.info) {
                 const dataSettings = document.createElement('div');
-                dataSettings.style.display = 'flex';
-                dataSettings.style.justifyContent = 'space-between';
-                dataSettings.style.marginBottom = '10px';
+                dataSettings.style.cssText = `
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 10px;
+                `;
 
                 const scoringField = DOM.makeDropdownField(
                     'Scoring',
@@ -826,7 +842,7 @@
 
         function getPlayerInfo(state, playerName) {
             let playerInfo = state.parsed[playerName];
-            
+
             if (!playerInfo) return;
 
             return `${state.prefix || ''}${playerInfo}`
@@ -962,7 +978,7 @@
 
         function getPlayerInfo(state, playerName) {
             let playerInfo = state.parsed[playerName];
-            
+
             if (!playerInfo) return;
 
             return `${state.prefix || ''}${playerInfo}`
@@ -984,9 +1000,11 @@
 
             tab.appendChild(prefixField);
             const dataSettings = document.createElement('div');
-            dataSettings.style.display = 'flex';
-            dataSettings.style.justifyContent = 'space-between';
-            dataSettings.style.marginBottom = '10px';
+            dataSettings.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 10px;
+            `;
 
             const delimiterField = DOM.makeDropdownField(
                 'Delimiter',
@@ -1148,14 +1166,16 @@
 
             const button = makeButton(text, onClick, id);
 
-            button.style.position = 'fixed';
-            button.style.top = `${offset}px`;
-            button.style.right = 0;
-            button.style.color = 'green';
-            button.style.zIndex = '9999999';
-            button.style.fontSize = '16px';
-            button.style.padding = '1px 6px';
-            button.style.marginRight = '0';
+            button.style.cssText = `
+                position: fixed;
+                top: ${offset}px;
+                right: 0;
+                color: green;
+                z-index: 9999999;
+                font-size: 16px;
+                padding: 1px 6px;
+                margin-right: 0;
+            `;
 
             const body = document.getElementsByTagName('body')[0];
 
@@ -1168,12 +1188,15 @@
             const button = document.createElement('button');
             button.id = id;
             button.innerHTML = text;
-            button.style.padding = '5px';
-            button.style.marginRight = '5px';
-            button.style.backgroundColor = 'lightgray';
-            button.style.border = '1px solid black';
-            button.style.borderRadius = '5px';
-            button.style.cursor = 'pointer';
+            button.style.cssText = `
+                padding: 5px;
+                margin-right: 5px;
+                background-color: lightgray;
+                border: 1px solid black;
+                border-radius: 5px;
+                cursor: pointer;
+            `;
+
             button.addEventListener('click', onClick);
 
             return button;
@@ -1183,9 +1206,11 @@
             const tab = document.createElement('div');
             tab.id = id;
             tab.className = SETTINGS.selectors.tabs.id;
-            tab.style.padding = '10px';
-            tab.style.maxHeight = '70vh';
-            tab.style.overflowY = 'auto';
+            tab.style.cssText += `
+                padding: 10px;
+                max-height: 70vh;
+                overflow-y: auto;
+            `;
 
             const helpText = document.createElement('p');
             helpText.textContent = content;
@@ -1227,10 +1252,13 @@
             input.id = id;
             input.placeholder = placeholder;
             input.value = value || '';
-            input.style.marginBottom = '10px';
-            input.style.backgroundColor = 'white';
-            input.style.border = '1px solid black';
-            input.style.padding = '3px';
+            input.style.cssText = `
+                margin-bottom: 10px;
+                background-color: white;
+                border: 1px solid black;
+                padding: 3px;
+            `;
+
 
             field.appendChild(label);
             field.appendChild(input);
@@ -1245,12 +1273,15 @@
             const textarea = document.createElement('textarea');
             textarea.id = id;
             textarea.value = value;
-            textarea.style.width = width;
-            textarea.style.height = height;
-            textarea.style.marginBottom = '10px';
-            textarea.style.backgroundColor = 'white';
-            textarea.style.border = '1px solid black';
-            textarea.style.padding = '3px';
+            textarea.style.cssText = `
+                width: ${width};
+                height: ${height};
+                margin-bottom: 10px;
+                background-color: white;
+                border: 1px solid black;
+                padding: 3px;
+            `;
+
             textarea.placeholder = placeholder;
 
             field.appendChild(label);
