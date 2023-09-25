@@ -354,7 +354,8 @@
             hideSettings,
             selectors: {
                 panel: UI.makeSelector('fuseSettingsPanel'),
-                tabs: UI.makeSelector('fuseSettingsPanel__tabs'),
+                tabLabels: UI.makeSelector('fuseSettingsPanel__tabLabel'),
+                tabContents: UI.makeSelector('fuseSettingsPanel__tabContent'),
             }
         }
 
@@ -367,34 +368,37 @@
                 return;
             }
 
-            let settingsPanel = createMainSettingsPanel();
-            let contentContainer = document.createElement('div');
-            contentContainer.style.cssText = `
-                padding: 10px;
-            `;
-
             const state = STORE.getState().data
 
+            let settingsPanel = createMainSettingsPanel();
+            let contentContainer = document.createElement('div');            
+
             const borisChenTab = BORISCHEN.settingsPanel.createTab(state.borisChen)
-            const toggleBorisChenTab = DOM.makeButton('BorisChen', () => {
-                toggleTabs(borisChenTab.id)
-            });
-
             const subvertADownTab = SUBVERTADOWN.settingsPanel.createSubvertADownTab(state.subvertADown);
-            const toggleSubvertADownTab = DOM.makeButton('SubvertADown', () => {
-                toggleTabs(subvertADownTab.id)
-            });
-
             const customDataTab = CUSTOMDATA.settingsPanel.createCustomDataTab(state.customData);
-            const toggleCustomData = DOM.makeButton('CustomData', () => {
-                toggleTabs(customDataTab.id)
-            });
-            contentContainer.appendChild(toggleBorisChenTab);
-            contentContainer.appendChild(toggleSubvertADownTab);
-            contentContainer.appendChild(toggleCustomData);
+
+            contentContainer.appendChild(DOM.makeTabs([
+                { contentSelector: borisChenTab.id, label: 'BorisChen', default: true },
+                { contentSelector: subvertADownTab.id, label: 'SubvertADown' },
+                { contentSelector: customDataTab.id, label: 'CustomData' }
+            ], {
+                tabLabelsSelector: self.selectors.tabLabels.id,
+                tabContentsSelector: self.selectors.tabContents.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249',
+                }
+            }));
+
             contentContainer.appendChild(borisChenTab);
             contentContainer.appendChild(subvertADownTab);
             contentContainer.appendChild(customDataTab);
+
+            let actionsSection = document.createElement('div');
+            actionsSection.style.cssText = `
+                padding: 10px;
+                border-top: 1px solid #ccc;
+            `;
 
             const saveBtn = DOM.makeButton('Save', () => {
                 let state = STORE.getState();
@@ -408,13 +412,14 @@
                 UI.injectFUSEInfoIntoFantasySite();
             });
 
-            contentContainer.appendChild(saveBtn);
-            contentContainer.appendChild(DOM.makeButton('Hide', hideSettings));
+            actionsSection.appendChild(saveBtn);
+            actionsSection.appendChild(DOM.makeButton('Hide', hideSettings));
             settingsPanel.appendChild(contentContainer);
+            settingsPanel.appendChild(actionsSection);
             settingsPanel.appendChild(createInfoSection());
 
             document.body.insertBefore(settingsPanel, document.getElementById(showSettingsBtn.id).nextSibling);
-            toggleTabs(borisChenTab.id);
+            activateTab(borisChenTab.id);
 
             function createInfoSection() {
                 const info = document.createElement('div');
@@ -451,23 +456,6 @@
                 return settingsPanel
             }
 
-            function hideAllTabs() {
-                const tabs = document.querySelectorAll(`.${self.selectors.tabs.id}`);
-
-                tabs.forEach(tab => {
-                    tab.style.display = 'none';
-                });
-            };
-
-            function showTab(tabId) {
-                var element = document.getElementById(tabId);
-                element.style.display = 'block';
-            }
-
-            function toggleTabs(tabId) {
-                hideAllTabs();
-                showTab(tabId);
-            }
         }
 
         function hideSettings() {
@@ -477,7 +465,7 @@
 
     function makeBorisChenModule() {
         function borisChenSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__borisChen_${id}`, attribute);
+            return UI.makeSelector(`${SETTINGS.selectors.tabContents.id}__borisChen_${id}`, attribute);
         }
 
         const scoreSuffix = {
@@ -501,8 +489,8 @@
                     lastFetched: borisChenSelector('lastFetched', 'data-state'),
                     fetchDataBtn: borisChenSelector('fetchDataBtn'),
                     positions: {
-                        id: (position) => `${SETTINGS.selectors.tabs.id}_borisChen_${position}`,
-                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_borisChen_${position}`),
+                        id: (position) => `${SETTINGS.selectors.tabContents.id}_borisChen_${position}`,
+                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabContents.id}_borisChen_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -688,7 +676,10 @@
             const { selectors } = self.settingsPanel;
             const tab = DOM.makeTabElement(
                 selectors.tab.id,
-                "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
+                "Configure your league scoring setting and automatically fetch data from from www.borisChen.co or paste it in manually.",
+                {
+                    active: true
+                }
             );
 
             const prefixField = DOM.makeInputField(
@@ -795,7 +786,7 @@
 
     function makeSubvertADownModule() {
         function subvertADownSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__subvertADown_${id}`, attribute);
+            return UI.makeSelector(`${SETTINGS.selectors.tabContents.id}__subvertADown_${id}`, attribute);
         }
 
         const self = {
@@ -809,8 +800,8 @@
                     prefix: subvertADownSelector('prefix'),
                     raw: subvertADownSelector('raw'),
                     positions: {
-                        id: (position) => `${SETTINGS.selectors.tabs.id}_subvertADown_${position}`,
-                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_subvertADown_${position}`),
+                        id: (position) => `${SETTINGS.selectors.tabContents.id}_subvertADown_${position}`,
+                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabContents.id}_subvertADown_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -933,7 +924,7 @@
 
     function makeCustomDataModule() {
         function customDataSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__customData_${id}`, attribute);
+            return UI.makeSelector(`${SETTINGS.selectors.tabContents.id}__customData_${id}`, attribute);
         }
 
         const self = {
@@ -1145,8 +1136,7 @@
     }
 
     function makeDOMModule() {
-
-        return {
+        const self = {
             makePageButton,
             makeButton,
             makeTabElement,
@@ -1154,8 +1144,11 @@
             makeReadOnlyField,
             makeInputField,
             makeTextAreaField,
-            makeDropdownField
+            makeDropdownField,
+            makeTabs
         }
+
+        return self;
 
         function makePageButton(id, text, offset, onClick) {
             const existingBtn = document.getElementById(id);
@@ -1202,14 +1195,15 @@
             return button;
         }
 
-        function makeTabElement(id, content) {
+        function makeTabElement(id, content, options) {
             const tab = document.createElement('div');
             tab.id = id;
-            tab.className = SETTINGS.selectors.tabs.id;
+            tab.className = SETTINGS.selectors.tabContents.id;
             tab.style.cssText += `
                 padding: 10px;
                 max-height: 70vh;
                 overflow-y: auto;
+                display: ${options?.active ? 'block' : 'none'};
             `;
 
             const helpText = document.createElement('p');
@@ -1313,6 +1307,69 @@
             field.appendChild(selectElement);
 
             return field;
+        }
+
+        function makeTabs(tabs, options) {
+            const tabsContainer = document.createElement('div');
+            tabsContainer.style.cssText = `
+                display: flex;  
+                justify-content: space-between;
+                background-color: ${options.tabLabels.backgroundColor};  
+            `;
+
+            tabs.forEach(tab => {
+                const tabNameLabel = document.createElement('div');
+                tabNameLabel.textContent = tab.label;
+                tabNameLabel.id = `${tab.contentSelector}_label`;
+                tabNameLabel.classList.add(options.tabLabelsSelector);
+
+                tabNameLabel.style.cssText = `
+                    padding: 10px;
+                    width: 100%;
+                    cursor: pointer;
+                    border-bottom: 1px solid #ccc;
+                    background-color: inherit;
+                `;
+
+                if(tab.default){
+                    tabNameLabel.style.borderBottom = 'none';
+                    tabNameLabel.style.backgroundColor = options.tabLabels.activeBackgroundColor;
+                }
+
+                tabNameLabel.addEventListener('click', () => {
+                    hideAllTabs();
+                    showTab(tab.contentSelector);
+                });
+
+                tabsContainer.appendChild(tabNameLabel);
+            });
+
+            return tabsContainer;
+
+
+            function hideAllTabs() {
+                const tabLabel = document.querySelectorAll(`.${options.tabLabelsSelector}`);
+
+                tabLabel.forEach(tab => {
+                    tab.style.borderBottom = '1px solid #ccc';
+                    tab.style.backgroundColor = 'inherit';
+                });
+
+                const tabContents = document.querySelectorAll(`.${options.tabContentsSelector}`);
+
+                tabContents.forEach(tab => {
+                    tab.style.display = 'none';
+                });
+            };
+
+            function showTab(contentSelector) {
+                let tabNameLabel = document.getElementById(`${contentSelector}_label`);
+                tabNameLabel.style.borderBottom = 'none';
+                tabNameLabel.style.backgroundColor = options.tabLabels.activeBackgroundColor;
+
+                let tabContent = document.getElementById(`${contentSelector}`);
+                tabContent.style.display = 'block';
+            }
         }
     }
 }
