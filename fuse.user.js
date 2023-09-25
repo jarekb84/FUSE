@@ -372,9 +372,9 @@
             let settingsPanel = createMainSettingsPanel();
             let contentContainer = document.createElement('div');
 
-            const borisChenTab = BORISCHEN.settingsPanel.createTab(state.borisChen)
-            const subvertADownTab = SUBVERTADOWN.settingsPanel.createSubvertADownTab(state.subvertADown);
-            const customDataTab = CUSTOMDATA.settingsPanel.createCustomDataTab(state.customData);
+            const borisChenTab = BORISCHEN.settingsPanel.createTabContent(state.borisChen)
+            const subvertADownTab = SUBVERTADOWN.settingsPanel.createTabContent(state.subvertADown);
+            const customDataTab = CUSTOMDATA.settingsPanel.createTabContent(state.customData);
 
             contentContainer.appendChild(DOM.makeTabs([
                 { label: 'BorisChen', default: true, contents: borisChenTab },
@@ -473,7 +473,7 @@
             updateState,
             getPlayerInfo,
             settingsPanel: {
-                createTab,
+                createTabContent,
                 selectors: {
                     tab: borisChenSelector('tab'),
                     prefix: borisChenSelector('prefix'),
@@ -665,7 +665,7 @@
             }
         }
 
-        function createTab(savedData) {
+        function createTabContent(savedData) {
             const { selectors } = self.settingsPanel;
             const tabContent = document.createElement('div');
             const helpText = document.createElement('p');
@@ -785,7 +785,7 @@
             updateState,
             getPlayerInfo,
             settingsPanel: {
-                createSubvertADownTab,
+                createTabContent,
                 selectors: {
                     tab: subvertADownSelector('tab'),
                     prefix: subvertADownSelector('prefix'),
@@ -829,7 +829,7 @@
 
             return `${state.prefix || ''}${playerInfo}`
         }
-        function createSubvertADownTab(savedData) {
+        function createTabContent(savedData) {
             const tabContent = document.createElement('div');
 
             const helpText = document.createElement('p');
@@ -925,7 +925,7 @@
             updateState,
             getPlayerInfo,
             settingsPanel: {
-                createCustomDataTab,
+                createTabContent,
                 selectors: {
                     tab: customDataSelector('tab'),
                     prefix: customDataSelector('prefix'),
@@ -968,7 +968,7 @@
             return `${state.prefix || ''}${playerInfo}`
         }
 
-        function createCustomDataTab(savedData) {
+        function createTabContent(savedData) {
             const { selectors } = self.settingsPanel;
             const tabContent = document.createElement('div');
 
