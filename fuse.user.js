@@ -354,8 +354,7 @@
             hideSettings,
             selectors: {
                 panel: UI.makeSelector('fuseSettingsPanel'),
-                tabLabels: UI.makeSelector('fuseSettingsPanel__tabLabel'),
-                tabContents: UI.makeSelector('fuseSettingsPanel__tabContent'),
+                tabs: UI.makeSelector('fuseSettingsPanel__tabs'),
             }
         }
 
@@ -371,28 +370,23 @@
             const state = STORE.getState().data
 
             let settingsPanel = createMainSettingsPanel();
-            let contentContainer = document.createElement('div');            
+            let contentContainer = document.createElement('div');
 
             const borisChenTab = BORISCHEN.settingsPanel.createTab(state.borisChen)
             const subvertADownTab = SUBVERTADOWN.settingsPanel.createSubvertADownTab(state.subvertADown);
             const customDataTab = CUSTOMDATA.settingsPanel.createCustomDataTab(state.customData);
 
             contentContainer.appendChild(DOM.makeTabs([
-                { contentSelector: borisChenTab.id, label: 'BorisChen', default: true },
-                { contentSelector: subvertADownTab.id, label: 'SubvertADown' },
-                { contentSelector: customDataTab.id, label: 'CustomData' }
+                { label: 'BorisChen', default: true, contents: borisChenTab },
+                { label: 'SubvertADown', contents: subvertADownTab },
+                { label: 'CustomData', contents: customDataTab }
             ], {
-                tabLabelsSelector: self.selectors.tabLabels.id,
-                tabContentsSelector: self.selectors.tabContents.id,
+                selector: self.selectors.tabs.id,
                 tabLabels: {
                     backgroundColor: '#eee',
                     activeBackgroundColor: 'rgb(249, 249, 249',
                 }
             }));
-
-            contentContainer.appendChild(borisChenTab);
-            contentContainer.appendChild(subvertADownTab);
-            contentContainer.appendChild(customDataTab);
 
             let actionsSection = document.createElement('div');
             actionsSection.style.cssText = `
@@ -419,7 +413,6 @@
             settingsPanel.appendChild(createInfoSection());
 
             document.body.insertBefore(settingsPanel, document.getElementById(showSettingsBtn.id).nextSibling);
-            activateTab(borisChenTab.id);
 
             function createInfoSection() {
                 const info = document.createElement('div');
@@ -465,7 +458,7 @@
 
     function makeBorisChenModule() {
         function borisChenSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabContents.id}__borisChen_${id}`, attribute);
+            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__borisChen_${id}`, attribute);
         }
 
         const scoreSuffix = {
@@ -489,8 +482,8 @@
                     lastFetched: borisChenSelector('lastFetched', 'data-state'),
                     fetchDataBtn: borisChenSelector('fetchDataBtn'),
                     positions: {
-                        id: (position) => `${SETTINGS.selectors.tabContents.id}_borisChen_${position}`,
-                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabContents.id}_borisChen_${position}`),
+                        id: (position) => `${SETTINGS.selectors.tabs.id}_borisChen_${position}`,
+                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_borisChen_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -674,13 +667,11 @@
 
         function createTab(savedData) {
             const { selectors } = self.settingsPanel;
-            const tab = DOM.makeTabElement(
-                selectors.tab.id,
-                "Configure your league scoring setting and automatically fetch data from from www.borisChen.co or paste it in manually.",
-                {
-                    active: true
-                }
-            );
+            const tabContent = document.createElement('div');
+            const helpText = document.createElement('p');
+            helpText.textContent = 'Configure your league scoring setting and automatically fetch data from from www.borisChen.co or paste it in manually.';
+            helpText.style.marginBottom = '10px';
+            tabContent.appendChild(helpText);
 
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
@@ -689,7 +680,7 @@
                 savedData.prefix,
             );
 
-            tab.appendChild(prefixField);
+            tabContent.appendChild(prefixField);
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
             if (GM?.info) {
                 const dataSettings = document.createElement('div');
@@ -747,8 +738,8 @@
                 dataSettings.appendChild(autoFetchField);
                 dataSettings.appendChild(lastFetchedField);
 
-                tab.appendChild(dataSettings);
-                tab.appendChild(fetchDataBtn);
+                tabContent.appendChild(dataSettings);
+                tabContent.appendChild(fetchDataBtn);
             }
 
             for (const position of positions) {
@@ -758,10 +749,10 @@
                     savedData.raw[position],
                 );
 
-                tab.appendChild(positionField);
+                tabContent.appendChild(positionField);
             }
 
-            return tab;
+            return tabContent;
         }
 
         function getFormData() {
@@ -786,7 +777,7 @@
 
     function makeSubvertADownModule() {
         function subvertADownSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabContents.id}__subvertADown_${id}`, attribute);
+            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__subvertADown_${id}`, attribute);
         }
 
         const self = {
@@ -800,8 +791,8 @@
                     prefix: subvertADownSelector('prefix'),
                     raw: subvertADownSelector('raw'),
                     positions: {
-                        id: (position) => `${SETTINGS.selectors.tabContents.id}_subvertADown_${position}`,
-                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabContents.id}_subvertADown_${position}`),
+                        id: (position) => `${SETTINGS.selectors.tabs.id}_subvertADown_${position}`,
+                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_subvertADown_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -839,10 +830,12 @@
             return `${state.prefix || ''}${playerInfo}`
         }
         function createSubvertADownTab(savedData) {
-            const tab = DOM.makeTabElement(
-                self.settingsPanel.selectors.tab.id,
-                "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
-            );
+            const tabContent = document.createElement('div');
+
+            const helpText = document.createElement('p');
+            helpText.textContent = 'Copy data from https://subvertadown.com and paste the raw tier info into the below text areas.';
+            helpText.style.marginBottom = '10px';
+            tabContent.appendChild(helpText);
 
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
@@ -851,7 +844,7 @@
                 savedData.prefix,
             );
 
-            tab.appendChild(prefixField);
+            tabContent.appendChild(prefixField);
 
             const positions = ['DST', 'QB', 'K'];
 
@@ -862,10 +855,10 @@
                     savedData.raw[position],
                 );
 
-                tab.appendChild(positionField);
+                tabContent.appendChild(positionField);
             }
 
-            return tab;
+            return tabContent;
         }
 
         function getSubvertADownFormData() {
@@ -924,7 +917,7 @@
 
     function makeCustomDataModule() {
         function customDataSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabContents.id}__customData_${id}`, attribute);
+            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__customData_${id}`, attribute);
         }
 
         const self = {
@@ -977,10 +970,12 @@
 
         function createCustomDataTab(savedData) {
             const { selectors } = self.settingsPanel;
-            const tab = DOM.makeTabElement(
-                selectors.tab.id,
-                "Paste in your own data from a spreadsheet or another website."
-            );
+            const tabContent = document.createElement('div');
+
+            const helpText = document.createElement('p');
+            helpText.textContent = 'Paste in your own data from a spreadsheet or another website.';
+            helpText.style.marginBottom = '10px';
+            tabContent.appendChild(helpText);
 
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
@@ -989,7 +984,7 @@
                 savedData.prefix,
             );
 
-            tab.appendChild(prefixField);
+            tabContent.appendChild(prefixField);
             const dataSettings = document.createElement('div');
             dataSettings.style.cssText = `
                 display: flex;
@@ -1021,7 +1016,7 @@
             );
             dataSettings.appendChild(displayColumnField);
 
-            tab.appendChild(dataSettings);
+            tabContent.appendChild(dataSettings);
 
             const positionField = DOM.makeTextAreaField(
                 'Custom',
@@ -1030,9 +1025,9 @@
                 { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
             );
 
-            tab.appendChild(positionField);
+            tabContent.appendChild(positionField);
 
-            return tab;
+            return tabContent;
         }
 
         function getCustomDataFormData() {
@@ -1195,10 +1190,10 @@
             return button;
         }
 
-        function makeTabElement(id, content, options) {
+        function makeTabElement(id, classSelector, content, options) {
             const tab = document.createElement('div');
             tab.id = id;
-            tab.className = SETTINGS.selectors.tabContents.id;
+            tab.className = classSelector;
             tab.style.cssText += `
                 padding: 10px;
                 max-height: 70vh;
@@ -1206,11 +1201,8 @@
                 display: ${options?.active ? 'block' : 'none'};
             `;
 
-            const helpText = document.createElement('p');
-            helpText.textContent = content;
-            helpText.style.marginBottom = '10px';
 
-            tab.appendChild(helpText);
+            tab.appendChild(content);
 
             return tab;
         }
@@ -1310,18 +1302,21 @@
         }
 
         function makeTabs(tabs, options) {
-            const tabsContainer = document.createElement('div');
-            tabsContainer.style.cssText = `
+            const tabContainer = document.createElement('div');
+            const tabLabels = document.createElement('div');
+            tabLabels.style.cssText = `
                 display: flex;  
                 justify-content: space-between;
                 background-color: ${options.tabLabels.backgroundColor};  
             `;
 
-            tabs.forEach(tab => {
+            const tabContents = document.createElement('div');
+
+            tabs.forEach((tab, index) => {
                 const tabNameLabel = document.createElement('div');
                 tabNameLabel.textContent = tab.label;
-                tabNameLabel.id = `${tab.contentSelector}_label`;
-                tabNameLabel.classList.add(options.tabLabelsSelector);
+                tabNameLabel.id = `${options.selector}_${index}_label`;
+                tabNameLabel.classList.add(`${options.selector}_label`);
 
                 tabNameLabel.style.cssText = `
                     padding: 10px;
@@ -1331,31 +1326,42 @@
                     background-color: inherit;
                 `;
 
-                if(tab.default){
+                if (tab.default) {
                     tabNameLabel.style.borderBottom = 'none';
                     tabNameLabel.style.backgroundColor = options.tabLabels.activeBackgroundColor;
                 }
 
                 tabNameLabel.addEventListener('click', () => {
                     hideAllTabs();
-                    showTab(tab.contentSelector);
+                    showTab(`${options.selector}_${index}`);
                 });
 
-                tabsContainer.appendChild(tabNameLabel);
+                tabLabels.appendChild(tabNameLabel);
+                tabContents.appendChild(
+                    makeTabElement(
+                        `${options.selector}_${index}_content`,
+                        `${options.selector}_content`,
+                        tab.contents,
+                        { active: tab.default }
+                    )
+                );
             });
 
-            return tabsContainer;
+            tabContainer.appendChild(tabLabels);
+            tabContainer.appendChild(tabContents);
+
+            return tabContainer;
 
 
             function hideAllTabs() {
-                const tabLabel = document.querySelectorAll(`.${options.tabLabelsSelector}`);
+                const tabLabel = document.querySelectorAll(`.${options.selector}_label`);
 
                 tabLabel.forEach(tab => {
                     tab.style.borderBottom = '1px solid #ccc';
                     tab.style.backgroundColor = 'inherit';
                 });
 
-                const tabContents = document.querySelectorAll(`.${options.tabContentsSelector}`);
+                const tabContents = document.querySelectorAll(`.${options.selector}_content`);
 
                 tabContents.forEach(tab => {
                     tab.style.display = 'none';
@@ -1367,7 +1373,7 @@
                 tabNameLabel.style.borderBottom = 'none';
                 tabNameLabel.style.backgroundColor = options.tabLabels.activeBackgroundColor;
 
-                let tabContent = document.getElementById(`${contentSelector}`);
+                let tabContent = document.getElementById(`${contentSelector}_content`);
                 tabContent.style.display = 'block';
             }
         }
