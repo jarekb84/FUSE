@@ -350,14 +350,20 @@
         }
     }
 
-    function makeDataSourcesTabModule(){
+    function makeDataSourcesTabModule() {
+        function dataSourcesTabSelector() {
+            return UI.makeSelector(`${FUSE.selectors.tabs.id}__dataSources`);
+        }
         const self = {
-            makeDataSourcesTabContent
+            makeDataSourcesTabContent,
+            selectors: {
+                root: dataSourcesTabSelector()
+            }
         }
 
         return self;
 
-        function makeDataSourcesTabContent(){
+        function makeDataSourcesTabContent() {
             const state = STORE.getState().data
             let tabContent = document.createElement('div');
 
@@ -370,10 +376,15 @@
                 { label: 'SubvertADown', contents: subvertADownTab },
                 { label: 'CustomData', contents: customDataTab }
             ], {
-                selector: FUSE.selectors.tabs.id,
+                selector: self.selectors.root.id,
                 tabLabels: {
                     backgroundColor: '#eee',
                     activeBackgroundColor: 'rgb(249, 249, 249',
+                    beforeContent: true,
+                    padding: '10px',
+                },
+                tabContent: {
+                    padding: '10px',
                 }
             }));
 
@@ -401,29 +412,25 @@
 
             let configModal = createConfiguratorModal();
             const dataSourcesTab = DATASOURCESTAB.makeDataSourcesTabContent();
+            let settingsTab = document.createElement('div');
+            settingsTab.innerText = 'Settings content'
+            configModal.appendChild(DOM.makeTabs([
+                { label: 'Data', default: true, contents: dataSourcesTab },
+                { label: 'Settings', contents: settingsTab },
+            ], {
+                selector: FUSE.selectors.tabs.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249',
+                    padding: '5px',
+                    beforeContent: true,
+                },
+                tabContent: {
+                    padding: '0'
+                }
+            }));
 
-            let actionsSection = document.createElement('div');
-            actionsSection.style.cssText = `
-                padding: 10px;
-                border-top: 1px solid #ccc;
-            `;
-
-            const saveBtn = DOM.makeButton('Save', () => {
-                let state = STORE.getState();
-
-                state.data.borisChen = BORISCHEN.updateState(state.data.borisChen)
-                state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown)
-                state.data.customData = CUSTOMDATA.updateState(state.data.customData)
-
-                STORE.saveState(state);
-                closeConfigurator();
-                UI.injectFUSEInfoIntoFantasySite();
-            });
-
-            actionsSection.appendChild(saveBtn);
-            actionsSection.appendChild(DOM.makeButton('Hide', closeConfigurator));
-            configModal.appendChild(dataSourcesTab);
-            configModal.appendChild(actionsSection);
+            configModal.appendChild(createActionsSection());
             configModal.appendChild(createInfoSection());
 
             document.body.insertBefore(configModal, document.getElementById(showConfiguratorBtn.id).nextSibling);
@@ -463,6 +470,31 @@
                 return dataSourcesTab
             }
 
+            function createActionsSection() {
+                let actionsSection = document.createElement('div');
+                actionsSection.style.cssText = `
+                    padding: 10px;
+                    border-top: 1px solid #ccc;
+                `;
+
+                const saveBtn = DOM.makeButton('Save', () => {
+                    let state = STORE.getState();
+
+                    state.data.borisChen = BORISCHEN.updateState(state.data.borisChen)
+                    state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown)
+                    state.data.customData = CUSTOMDATA.updateState(state.data.customData)
+
+                    STORE.saveState(state);
+                    closeConfigurator();
+                    UI.injectFUSEInfoIntoFantasySite();
+                });
+
+                actionsSection.appendChild(saveBtn);
+                actionsSection.appendChild(DOM.makeButton('Hide', closeConfigurator));
+
+                return actionsSection;
+            }
+
         }
 
         function closeConfigurator() {
@@ -471,8 +503,10 @@
     }
 
     function makeBorisChenModule() {
+        const rootSelector = `${DATASOURCESTAB.selectors.root.id}__borisChen`;
+
         function borisChenSelector(id, attribute) {
-            return UI.makeSelector(`${FUSE.selectors.tabs.id}__borisChen_${id}`, attribute);
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
         const scoreSuffix = {
@@ -496,8 +530,8 @@
                     lastFetched: borisChenSelector('lastFetched', 'data-state'),
                     fetchDataBtn: borisChenSelector('fetchDataBtn'),
                     positions: {
-                        id: (position) => `${FUSE.selectors.tabs.id}_borisChen_${position}`,
-                        get: (position) => document.getElementById(`${FUSE.selectors.tabs.id}_borisChen_${position}`),
+                        id: (position) => `${rootSelector}_${position}`,
+                        get: (position) => document.getElementById(`${rootSelector}_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -790,8 +824,9 @@
     }
 
     function makeSubvertADownModule() {
+        const rootSelector = `${DATASOURCESTAB.selectors.root.id}__subvertADown`;
         function subvertADownSelector(id, attribute) {
-            return UI.makeSelector(`${FUSE.selectors.tabs.id}__subvertADown_${id}`, attribute);
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
         const self = {
@@ -805,9 +840,8 @@
                     prefix: subvertADownSelector('prefix'),
                     raw: subvertADownSelector('raw'),
                     positions: {
-                        // TODO_JB these tab selectors will need to be more specific
-                        id: (position) => `${FUSE.selectors.tabs.id}_subvertADown_${position}`,
-                        get: (position) => document.getElementById(`${FUSE.selectors.tabs.id}_subvertADown_${position}`),
+                        id: (position) => `${rootSelector}_${position}`,
+                        get: (position) => document.getElementById(`${rootSelector}_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -931,8 +965,9 @@
     }
 
     function makeCustomDataModule() {
+        const rootSelector = `${DATASOURCESTAB.selectors.root.id}__customData`;
         function customDataSelector(id, attribute) {
-            return UI.makeSelector(`${FUSE.selectors.tabs.id}__customData_${id}`, attribute);
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
         const self = {
@@ -1203,7 +1238,7 @@
             button.addEventListener('click', onClick);
 
             return button;
-        }   
+        }
 
         function makeLabelElement(text) {
             const label = document.createElement('label');
@@ -1317,7 +1352,7 @@
                 tabNameLabel.classList.add(`${options.selector}_label`);
 
                 tabNameLabel.style.cssText = `
-                    padding: 10px;
+                    padding: ${options.tabLabels.padding};
                     width: 100%;
                     cursor: pointer;
                     border-bottom: 1px solid #ccc;
@@ -1340,13 +1375,24 @@
                         `${options.selector}_${index}_content`,
                         `${options.selector}_content`,
                         tab.contents,
-                        { active: tab.default }
+                        {
+                            active: tab.default,
+                            padding: options.tabContent.padding
+                        }
                     )
                 );
+
             });
 
-            tabContainer.appendChild(tabLabels);
+            if (options.tabLabels.beforeContent) {
+                tabContainer.appendChild(tabLabels);
+            }
+
             tabContainer.appendChild(tabContents);
+
+            if (options.tabLabels.afterContent) {
+                tabContainer.appendChild(tabLabels);
+            }
 
             return tabContainer;
 
@@ -1381,7 +1427,7 @@
             tab.id = id;
             tab.className = classSelector;
             tab.style.cssText += `
-                padding: 10px;
+                padding: ${options.padding};
                 max-height: 70vh;
                 overflow-y: auto;
                 display: ${options?.active ? 'block' : 'none'};
