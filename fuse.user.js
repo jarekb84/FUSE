@@ -22,6 +22,7 @@
     const UTILS = makeUtilsModule();
 
     const FUSE = makeFUSEConfiguratorModule();
+    const DATASOURCESTAB = makeDataSourcesTabModule()
     const BORISCHEN = makeBorisChenModule();
     const SUBVERTADOWN = makeSubvertADownModule();
     const CUSTOMDATA = makeCustomDataModule();
@@ -348,6 +349,37 @@
             return dynamicTeamNames;
         }
     }
+
+    function makeDataSourcesTabModule(){
+        const self = {
+            makeDataSourcesTabContent
+        }
+
+        return self;
+
+        function makeDataSourcesTabContent(){
+            const state = STORE.getState().data
+            let tabContent = document.createElement('div');
+
+            const borisChenTab = BORISCHEN.dataSourcesTab.createTabContent(state.borisChen)
+            const subvertADownTab = SUBVERTADOWN.dataSourcesTab.createTabContent(state.subvertADown);
+            const customDataTab = CUSTOMDATA.dataSourcesTab.createTabContent(state.customData);
+
+            tabContent.appendChild(DOM.makeTabs([
+                { label: 'BorisChen', default: true, contents: borisChenTab },
+                { label: 'SubvertADown', contents: subvertADownTab },
+                { label: 'CustomData', contents: customDataTab }
+            ], {
+                selector: FUSE.selectors.tabs.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249',
+                }
+            }));
+
+            return tabContent
+        }
+    }
     function makeFUSEConfiguratorModule() {
         const self = {
             openConfigurator,
@@ -367,26 +399,8 @@
                 return;
             }
 
-            const state = STORE.getState().data
-
             let configModal = createConfiguratorModal();
-            let contentContainer = document.createElement('div');
-
-            const borisChenTab = BORISCHEN.dataSourcesTab.createTabContent(state.borisChen)
-            const subvertADownTab = SUBVERTADOWN.dataSourcesTab.createTabContent(state.subvertADown);
-            const customDataTab = CUSTOMDATA.dataSourcesTab.createTabContent(state.customData);
-
-            contentContainer.appendChild(DOM.makeTabs([
-                { label: 'BorisChen', default: true, contents: borisChenTab },
-                { label: 'SubvertADown', contents: subvertADownTab },
-                { label: 'CustomData', contents: customDataTab }
-            ], {
-                selector: self.selectors.tabs.id,
-                tabLabels: {
-                    backgroundColor: '#eee',
-                    activeBackgroundColor: 'rgb(249, 249, 249',
-                }
-            }));
+            const dataSourcesTab = DATASOURCESTAB.makeDataSourcesTabContent();
 
             let actionsSection = document.createElement('div');
             actionsSection.style.cssText = `
@@ -408,7 +422,7 @@
 
             actionsSection.appendChild(saveBtn);
             actionsSection.appendChild(DOM.makeButton('Hide', closeConfigurator));
-            configModal.appendChild(contentContainer);
+            configModal.appendChild(dataSourcesTab);
             configModal.appendChild(actionsSection);
             configModal.appendChild(createInfoSection());
 
