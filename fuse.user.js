@@ -26,6 +26,9 @@
     const BORISCHEN = makeBorisChenModule();
     const SUBVERTADOWN = makeSubvertADownModule();
     const CUSTOMDATA = makeCustomDataModule();
+
+    const SETTINGSTAB = makeSettingsTabModule();
+
     const PLAYERS = makePlayersModule();
 
     const DSTNames = PLAYERS.getDSTNames();
@@ -350,47 +353,6 @@
         }
     }
 
-    function makeDataSourcesTabModule() {
-        function dataSourcesTabSelector() {
-            return UI.makeSelector(`${FUSE.selectors.tabs.id}__dataSources`);
-        }
-        const self = {
-            makeDataSourcesTabContent,
-            selectors: {
-                root: dataSourcesTabSelector()
-            }
-        }
-
-        return self;
-
-        function makeDataSourcesTabContent() {
-            const state = STORE.getState().data
-            let tabContent = document.createElement('div');
-
-            const borisChenTab = BORISCHEN.dataSourcesTab.createTabContent(state.borisChen)
-            const subvertADownTab = SUBVERTADOWN.dataSourcesTab.createTabContent(state.subvertADown);
-            const customDataTab = CUSTOMDATA.dataSourcesTab.createTabContent(state.customData);
-
-            tabContent.appendChild(DOM.makeTabs([
-                { label: 'BorisChen', default: true, contents: borisChenTab },
-                { label: 'SubvertADown', contents: subvertADownTab },
-                { label: 'CustomData', contents: customDataTab }
-            ], {
-                selector: self.selectors.root.id,
-                tabLabels: {
-                    backgroundColor: '#eee',
-                    activeBackgroundColor: 'rgb(249, 249, 249',
-                    beforeContent: true,
-                    padding: '10px',
-                },
-                tabContent: {
-                    padding: '10px',
-                }
-            }));
-
-            return tabContent
-        }
-    }
     function makeFUSEConfiguratorModule() {
         const self = {
             openConfigurator,
@@ -412,8 +374,7 @@
 
             let configModal = createConfiguratorModal();
             const dataSourcesTab = DATASOURCESTAB.makeDataSourcesTabContent();
-            let settingsTab = document.createElement('div');
-            settingsTab.innerText = 'Settings content'
+            let settingsTab = SETTINGSTAB.makeSettingsTabContent();
             configModal.appendChild(DOM.makeTabs([
                 { label: 'Data', default: true, contents: dataSourcesTab },
                 { label: 'Settings', contents: settingsTab },
@@ -499,6 +460,49 @@
 
         function closeConfigurator() {
             document.body.removeChild(self.selectors.panel.get());
+        }
+    }
+
+    function makeDataSourcesTabModule() {
+        function dataSourcesTabSelector() {
+            return UI.makeSelector(`${FUSE.selectors.tabs.id}__dataSources`);
+        }
+        const self = {
+            makeDataSourcesTabContent,
+            selectors: {
+                root: dataSourcesTabSelector()
+            }
+        }
+
+        return self;
+
+        function makeDataSourcesTabContent() {
+            const state = STORE.getState().data
+            let tabContent = document.createElement('div');
+
+            const borisChenTab = BORISCHEN.dataSourcesTab.createTabContent(state.borisChen)
+            const subvertADownTab = SUBVERTADOWN.dataSourcesTab.createTabContent(state.subvertADown);
+            const customDataTab = CUSTOMDATA.dataSourcesTab.createTabContent(state.customData);
+
+            tabContent.appendChild(DOM.makeTabs([
+                { label: 'BorisChen', default: true, contents: borisChenTab },
+                { label: 'SubvertADown', contents: subvertADownTab },
+                { label: 'CustomData', contents: customDataTab }
+            ], {
+                selector: self.selectors.root.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249',
+                    beforeContent: true,
+                    padding: '10px',
+                },
+                tabContent: {
+                    padding: '10px',
+                    level: 1
+                }
+            }));
+
+            return tabContent
         }
     }
 
@@ -724,8 +728,10 @@
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 selectors.prefix.id,
-                'Ex: BC',
-                savedData.prefix,
+                savedData.prefix, 
+                {
+                    placeholder: 'Ex: BC'
+                }
             );
 
             tabContent.appendChild(prefixField);
@@ -889,8 +895,10 @@
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 self.dataSourcesTab.selectors.prefix.id,
-                'Ex: SD',
                 savedData.prefix,
+                {
+                    placeholder: 'Ex: SD'
+                }
             );
 
             tabContent.appendChild(prefixField);
@@ -1030,8 +1038,10 @@
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 selectors.prefix.id,
-                'Ex: C',
-                savedData.prefix,
+                savedData.prefix, 
+                {
+                    placeholder: 'Ex: C'
+                }
             );
 
             tabContent.appendChild(prefixField);
@@ -1127,6 +1137,232 @@
             }
 
             return playersDictionary;
+        }
+    }
+
+    function makeSettingsTabModule() {
+        const rootSelector = `${FUSE.selectors.tabs.id}__settings`;
+        function settingsTabSelector(id, attribute) {
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
+        }
+
+        function platformSelectorsSelector(id, attribute){
+            return settingsTabSelector(`platformSelectors__${id}`, attribute)
+        }
+        const self = {
+            getDefaultState,
+            updateState, // TODO make
+            makeSettingsTabContent,
+            selectors: {
+                root: settingsTabSelector()
+            }
+        }
+
+        return self;
+
+        const platformSelectors = {
+            espn: [{
+                pageName: 'Common',
+                playerName: '.player-column__bio .AnchorLink.link',
+                parent: '.player-column__bio',
+                rowAfterPlayerName: '.player-column__position'
+            }],
+            yahoo: [{
+                pageName: 'Common',
+                playerName: '.ysf-player-name a',
+                parent: 'td',
+                rowAfterPlayerName: '.ysf-player-detail'
+            }],
+            nfl: [{
+                pageName: 'Common',
+                playerName: '.playerName',
+                parent: '.playerNameAndInfo',
+                rowAfterPlayerName: 'em',
+            }],
+            cbs: [{
+                pageName: 'Common',
+                playerName: '.playerLink',
+                parent: 'td',
+                rowAfterPlayerName: '.playerPositionAndTeam'
+            }],
+            sleeper: [
+                {
+                    pageName: 'Matchup',
+                    playerName: '.matchup-player-item .player-name > div:first-child',
+                    parent: '.player-name',
+                    rowAfterPlayerName: '.player-pos'
+                },
+                {
+                    pageName: 'Team',
+                    playerName: '.team-roster-item .player-name',
+                    parent: '.cell-player-meta',
+                    rowAfterPlayerName: '.game-schedule-live-description'
+                },
+                {
+                    pageName: 'Players',
+                    playerName: '.player-meta-container .name',
+                    parent: '.name-container',
+                    rowAfterPlayerName: '.position'
+                },
+                {
+                    pageName: 'Trend',
+                    playerName: '.trending-list-item .name',
+                    parent: '.player-details',
+                    rowAfterPlayerName: '.position'
+                },
+                {
+                    pageName: 'Scores',
+                    playerName: '.scores-content .player-meta .name',
+                    parent: '.player-meta',
+                    rowAfterPlayerName: '.position'
+                },
+            ]
+        }
+        function getDefaultState() {
+            return {
+
+            }
+        }
+
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getSettingsTabFormData()
+            }
+
+            return newState;
+        }
+
+        function getSettingsTabFormData(){
+            const data = {
+                general:{
+
+                },
+                platformSelectors: {
+                    
+                }
+            }
+
+            Object.keys(platformSelectors).forEach(platform => {
+                let platformHeading = document.createElement('h4');
+                platformHeading.textContent = platform;
+                platformSelectorsSubTab.appendChild(platformHeading);
+                platformSelectors[platform].forEach((selectorGroup, selectorGroupIndex) => {
+                    Object.keys(selectorGroup).forEach(key => {
+                            data.platformSelectors[platform][selectorGroupIndex] = {
+                                
+                            }
+
+                            platformSelectors[platform][selectorGroupIndex].selectors[key] = {
+                                keySelector,
+                                keyOverrideSelector
+                            };
+
+                    })
+
+                })
+
+            });
+        }
+
+        function makeSettingsTabContent() {
+            const tabContent = document.createElement('div');
+            tabContent.style.cssText = `
+                padding: 10px;
+            `
+            const platformSelectorsSubTab = document.createElement('div');
+
+            Object.keys(platformSelectors).forEach(platform => {
+                let platformHeading = document.createElement('h4');
+                platformHeading.textContent = platform;
+                platformSelectorsSubTab.appendChild(platformHeading);
+                platformSelectors[platform].forEach((selectorGroup, selectorGroupIndex) => {
+                    Object.keys(selectorGroup).forEach(key => {
+                        if (key === 'pageName' && selectorGroup.pageName) {
+                            let pageHeading = document.createElement('h5');
+                            pageHeading.textContent = `${selectorGroup.pageName} Page`;
+                            platformSelectorsSubTab.appendChild(pageHeading);
+                        } else {
+                            let keySelector = platformSelectorsSelector(`${platform}_${selectorGroup.pageName}_${key}`)
+                            let keyOverrideSelector = platformSelectorsSelector( `${keySelector.id}_override`);
+                            platformSelectorsSubTab.appendChild(
+                                DOM.makeInputField(
+                                    key, 
+                                    keySelector.id, 
+                                    selectorGroup[key], 
+                                    { disabled: true }
+                                )
+                            );
+                            let fieldInput = DOM.makeInputField(
+                                `${key} Override`,
+                                keyOverrideSelector.id,
+                                '', // todo set value from state
+                                { styles: 'width: 100%' }
+                            );
+                            if(!platformSelectors[platform][selectorGroupIndex].selectors){
+                                platformSelectors[platform][selectorGroupIndex].selectors = {}
+                            }
+
+                            platformSelectors[platform][selectorGroupIndex].selectors[key] = {
+                                keySelector,
+                                keyOverrideSelector
+                            };
+                            
+                            platformSelectorsSubTab.appendChild(fieldInput)
+                        }
+
+                    })
+
+                })
+
+            });
+
+            const generalTab = document.createElement('div');
+            let delimiterSectionHeading = document.createElement('h3');
+            delimiterSectionHeading.textContent = `Delimiters`;
+            generalTab.appendChild(delimiterSectionHeading);
+
+            let dataSourceDelimiterField = DOM.makeInputField(
+                'Between Data Sources',
+                'self.dataSourcesTab.selectors.prefix.iddfdsafasd',  // todo figure out selector
+
+                '/',
+                {
+                    styles: 'width: 100%',
+                    placeholder: 'Ex: /'
+                }
+            );
+
+            let samePlayerWithinDataSourcesField = DOM.makeInputField(
+                'Player listed multiple times in a given data set',
+                'self.dataSourcesTab.selectors.prefix.iddfdsafasd',  // todo figure out selector                
+                '|',
+                { styles: 'width: 100%', placeholder: 'Ex: |' }
+            );
+
+            generalTab.appendChild(dataSourceDelimiterField)
+            generalTab.appendChild(samePlayerWithinDataSourcesField)
+
+
+            tabContent.appendChild(DOM.makeTabs([
+                { label: 'General', default: true, contents: generalTab },
+                { label: 'Platform Selectors', contents: platformSelectorsSubTab },
+            ], {
+                selector: self.selectors.root.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249',
+                    padding: '5px',
+                    beforeContent: true,
+                },
+                tabContent: {
+                    padding: '10px',
+                    level: 1
+                }
+            }));
+
+
+            return tabContent
+
         }
     }
 
@@ -1252,6 +1488,7 @@
             const field = document.createElement('div');
             const label = makeLabelElement(labelText);
             const displayValue = document.createElement('span');
+
             displayValue.id = id;
             displayValue.setAttribute('data-state', state);
             displayValue.style.marginBottom = '10px';
@@ -1263,19 +1500,21 @@
             return field;
         }
 
-        function makeInputField(labelText, id, placeholder, value,) {
+        function makeInputField(labelText, id, value, options = {}) {
             const field = document.createElement('div');
             const label = makeLabelElement(labelText)
 
             const input = document.createElement('input');
             input.id = id;
-            input.placeholder = placeholder;
+            input.placeholder = options.placeholder || '';
             input.value = value || '';
+            input.disabled = options.disabled;
             input.style.cssText = `
                 margin-bottom: 10px;
-                background-color: white;
+                ${options.disabled ? '' : 'background-color: white'};
                 border: 1px solid black;
                 padding: 3px;
+                ${options.styles}
             `;
 
 
@@ -1377,7 +1616,8 @@
                         tab.contents,
                         {
                             active: tab.default,
-                            padding: options.tabContent.padding
+                            padding: options.tabContent.padding,
+                            level: options.tabContent.level
                         }
                     )
                 );
@@ -1428,7 +1668,7 @@
             tab.className = classSelector;
             tab.style.cssText += `
                 padding: ${options.padding};
-                max-height: 70vh;
+                max-height: ${70 - (options.level || 0) * 5}vh;
                 overflow-y: auto;
                 display: ${options?.active ? 'block' : 'none'};
             `;
