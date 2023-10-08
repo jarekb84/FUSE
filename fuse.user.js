@@ -99,81 +99,47 @@
 
         function injectFUSEInfoIntoFantasySite() {
             const spans = document.querySelectorAll(`.${self.selectors.playerInfo}`);
-            const state = STORE.getState().data;
+            const state = STORE.getState();
+            const dataSources = state.data;
+            const settings = state.settings;
 
             spans.forEach(span => {
                 span.remove();
             });
 
             if (window.location.host === 'fantasy.espn.com') {
-                updateESPNPlayerInfo();
+                updatePlatformPlayerInfo('espn');
             }
 
             if (window.location.host === 'football.fantasysports.yahoo.com') {
-                updateYahooPlayerInfo();
+                updatePlatformPlayerInfo('yahoo');
             }
 
             if (window.location.host === 'fantasy.nfl.com') {
-                updateNFLPlayerInfo();
+                updatePlatformPlayerInfo('nfl');
             }
 
             if (window.location.host === 'sleeper.com') {
-                updateSleeperPlayerInfo();
+                updatePlatformPlayerInfo('sleeper');
             }
 
             if (window.location.host.includes('football.cbssports.com')) {
-                updateCBSPlayerInfo();
+                updatePlatformPlayerInfo('cbs');
             }
 
-            function updateESPNPlayerInfo() {
-                document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
-                });
-            }
+            function updatePlatformPlayerInfo(platformName) {
+                let platform = SETTINGSTAB.platformSelectors[platformName]
 
-            function updateYahooPlayerInfo() {
-                document.querySelectorAll('.ysf-player-name a').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, 'td', '.ysf-player-detail', { fontWeight: '700' });
-                });
-            }
+                for (const [pageName, page] of Object.entries(platform)) {
+                    let pageOverrides = settings.platformSelectors[platformName]?.[pageName];
+                    const playerName = pageOverrides?.playerName?.playerName_override || page.playerName;
+                    const parent = pageOverrides?.parent?.parent_override || page.parent;
+                    const rowAfterPlayerName = pageOverrides?.rowAfterPlayerName?.rowAfterPlayerName_override || page.rowAfterPlayerName;
 
-            function updateNFLPlayerInfo() {
-                document.querySelectorAll('.playerName').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.playerNameAndInfo', 'em', { fontWeight: '900' });
-                });
-            }
-
-            function updateSleeperPlayerInfo() {
-                // matchup page
-                document.querySelectorAll('.matchup-player-item .player-name > div:first-child').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-name', '.player-pos', { fontWeight: '900' });
-                });
-
-                // team page
-                document.querySelectorAll('.team-roster-item .player-name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.cell-player-meta', '.game-schedule-live-description', { fontWeight: '900' });
-                });
-
-                // players page
-                document.querySelectorAll('.player-meta-container .name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.name-container', '.position', { fontWeight: '900' });
-                });
-
-                // trend page
-                document.querySelectorAll('.trending-list-item .name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-details', '.position', { fontWeight: '900' });
-                });
-
-                // scores page
-                document.querySelectorAll('.scores-content .player-meta .name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-meta', '.position', { fontWeight: '900' });
-                });
-            }
-
-            function updateCBSPlayerInfo() {
-                document.querySelectorAll('.playerLink').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, 'td', 'playerPositionAndTeam', { fontWeight: '900', marginLeft: '2px' });
-                });
+                    document.querySelectorAll(playerName).forEach(playerNameEl => {
+                        insertFUSEPlayerInfo(playerNameEl, parent, rowAfterPlayerName);
+                    });
+                }
             }
 
             function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles) {
@@ -202,9 +168,9 @@
                 const playerName = name.replace(' D/ST', '').trim();
 
                 let info = [
-                    BORISCHEN.getPlayerInfo(state.borisChen, playerName),
-                    SUBVERTADOWN.getPlayerInfo(state.subvertADown, playerName),
-                    CUSTOMDATA.getPlayerInfo(state.customData, playerName),
+                    BORISCHEN.getPlayerInfo(dataSources.borisChen, playerName),
+                    SUBVERTADOWN.getPlayerInfo(dataSources.subvertADown, playerName),
+                    CUSTOMDATA.getPlayerInfo(dataSources.customData, playerName),
                 ];
 
                 return info.filter(i => i).join('/');
@@ -1215,6 +1181,7 @@
             getDefaultState,
             updateState,
             makeSettingsTabContent,
+            platformSelectors,
             selectors: {
                 root: settingsTabSelector()
             }
