@@ -1161,63 +1161,63 @@
         return self;
 
         const platformSelectors = {
-            espn: [{
-                pageName: 'Common',
-                playerName: '.player-column__bio .AnchorLink.link',
-                parent: '.player-column__bio',
-                rowAfterPlayerName: '.player-column__position'
-            }],
-            yahoo: [{
-                pageName: 'Common',
-                playerName: '.ysf-player-name a',
-                parent: 'td',
-                rowAfterPlayerName: '.ysf-player-detail'
-            }],
-            nfl: [{
-                pageName: 'Common',
-                playerName: '.playerName',
-                parent: '.playerNameAndInfo',
-                rowAfterPlayerName: 'em',
-            }],
-            cbs: [{
-                pageName: 'Common',
-                playerName: '.playerLink',
-                parent: 'td',
-                rowAfterPlayerName: '.playerPositionAndTeam'
-            }],
-            sleeper: [
-                {
-                    pageName: 'Matchup',
+            espn: {
+                common: {            
+                    playerName: '.player-column__bio .AnchorLink.link',
+                    parent: '.player-column__bio',
+                    rowAfterPlayerName: '.player-column__position'
+                }
+            },
+            yahoo: {
+                common: {
+                    playerName: '.ysf-player-name a',
+                    parent: 'td',
+                    rowAfterPlayerName: '.ysf-player-detail'
+                }
+            },
+            nfl: {
+                common: {
+                    playerName: '.playerName',
+                    parent: '.playerNameAndInfo',
+                    rowAfterPlayerName: 'em',
+                }
+            },
+            cbs: {
+                common: {
+                    playerName: '.playerLink',
+                    parent: 'td',
+                    rowAfterPlayerName: '.playerPositionAndTeam'
+                }
+            },
+            sleeper: {
+                matchup: {
                     playerName: '.matchup-player-item .player-name > div:first-child',
                     parent: '.player-name',
                     rowAfterPlayerName: '.player-pos'
                 },
-                {
-                    pageName: 'Team',
+                team: {
                     playerName: '.team-roster-item .player-name',
                     parent: '.cell-player-meta',
                     rowAfterPlayerName: '.game-schedule-live-description'
                 },
-                {
-                    pageName: 'Players',
+                players: {
                     playerName: '.player-meta-container .name',
                     parent: '.name-container',
                     rowAfterPlayerName: '.position'
                 },
-                {
-                    pageName: 'Trend',
+                trend: {
                     playerName: '.trending-list-item .name',
                     parent: '.player-details',
                     rowAfterPlayerName: '.position'
                 },
-                {
-                    pageName: 'Scores',
+                scores: {
                     playerName: '.scores-content .player-meta .name',
                     parent: '.player-meta',
                     rowAfterPlayerName: '.position'
                 },
-            ]
+            }
         }
+        
         function getDefaultState() {
             return {
 
