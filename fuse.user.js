@@ -137,14 +137,14 @@
                     const rowAfterPlayerName = pageOverrides?.rowAfterPlayerName?.rowAfterPlayerName_override || page.rowAfterPlayerName;
 
                     document.querySelectorAll(playerName).forEach(playerNameEl => {
-                        insertFUSEPlayerInfo(playerNameEl, parent, rowAfterPlayerName);
+                        insertFUSEPlayerInfo(playerNameEl, parent, rowAfterPlayerName, {}, settings.general.delimiters);
                     });
                 }
             }
 
-            function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles) {
+            function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles, delimiters) {
                 const name = playerNameEl.innerText;
-                const info = constructPlayerInfo(name);
+                const info = constructPlayerInfo(name, delimiters);
 
                 if (info) {
                     const fuseInfo = createPlayerInfoElement(info, styles);
@@ -160,7 +160,7 @@
                 }
             }
 
-            function constructPlayerInfo(name) {
+            function constructPlayerInfo(name, delimiters) {
                 if (!name) {
                     return '';
                 }
@@ -173,7 +173,7 @@
                     CUSTOMDATA.getPlayerInfo(dataSources.customData, playerName),
                 ];
 
-                return info.filter(i => i).join('/');
+                return info.filter(i => i).join(delimiters.betweenDataSources);
             }
 
             function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
@@ -232,12 +232,12 @@
             getDSTNames
         }
 
-        function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
+        function addPlayerInfoToDictionary(player, newInfo, playerDictionary, delimiters) {
             const playerName = player.replace(' III', '').replace(' II', '').trim();
             let infoToSave = playerDictionary[playerName]
 
             if (infoToSave) {
-                infoToSave += `|${newInfo}`;
+                infoToSave += `${delimiters.multipleStatsForPlayer}${newInfo}`;
             } else {
                 infoToSave = newInfo;
             }
@@ -577,6 +577,7 @@
         }
 
         function parseBorischenRawData(rawTierData) {
+            const delimiters = STORE.getState().settings.general.delimiters;
             const playerDictionary = {};
 
             parseTierInfo(rawTierData.QB, playerDictionary);
@@ -602,7 +603,7 @@
                     const playersInTier = row[1];
 
                     playersInTier?.split(', ').forEach((player, index) => {
-                        PLAYERS.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                        PLAYERS.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary, delimiters);
                     });
                 });
 
@@ -902,6 +903,7 @@
         }
 
         function parseSubvertADownFormRawData(rawData) {
+            const delimiters = STORE.getState().settings.general.delimiters;
             const playersDictionary = {};
 
             processData(rawData.DST, playersDictionary, true);
@@ -928,7 +930,7 @@
                             player = `${player}`;
                         }
                     } else {
-                        PLAYERS.addPlayerInfoToDictionary(player, line.trim(), playersDictionary);
+                        PLAYERS.addPlayerInfoToDictionary(player, line.trim(), playersDictionary, delimiters);
 
                         // reset for next iteration
                         player = ''
@@ -1074,10 +1076,11 @@
         }
 
         function parseCustomDataFormData(rawData, savedData) {
+            const delimiters = STORE.getState().settings.general.delimiters;
             const playersDictionary = {};
             const lines = rawData.custom.split('\n');
 
-            const delimiters = {
+            const inputDelimiters = {
                 'Tab': '\t',
                 'Space': ' ',
                 'Comma': ','
@@ -1087,7 +1090,7 @@
                 const line = lines[i].trim();
                 if (line.length === 0) continue;
 
-                const columns = line.split(delimiters[savedData.delimiter]);
+                const columns = line.split(inputDelimiters[savedData.delimiter]);
                 const playerName = columns[savedData.playerColumn - 1];
                 if (!playerName) continue;
 
@@ -1101,7 +1104,7 @@
 
                 restOfData = restOfData.map(d => d.trim());
 
-                PLAYERS.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary);
+                PLAYERS.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary, delimiters);
             }
 
             return playersDictionary;
@@ -1116,6 +1119,10 @@
 
         function platformSelectorsSelector(id, attribute) {
             return settingsTabSelector(`platformSelectors__${id}`, attribute)
+        }
+
+        function generalSettingsSelector(id, attribute) {
+            return settingsTabSelector(`general__${id}`, attribute)
         }
 
 
@@ -1183,7 +1190,13 @@
             makeSettingsTabContent,
             platformSelectors,
             selectors: {
-                root: settingsTabSelector()
+                root: settingsTabSelector(),
+                generalSettings: {
+                    delimiters: {
+                        betweenDataSources: generalSettingsSelector('delimiters__betweenDataSources'),
+                        multipleStatsForPlayer: generalSettingsSelector('delimiters__multipleStatsForPlayer'),
+                    }
+                }
             }
         }
 
@@ -1192,6 +1205,10 @@
         function getDefaultState() {
             return {
                 general: {
+                    delimiters: {
+                        betweenDataSources: '/',
+                        multipleStatsForPlayer: '|'
+                    }
 
                 },
                 platformSelectors: {}
@@ -1209,7 +1226,10 @@
         function getSettingsTabFormData() {
             const data = {
                 general: {
-
+                    delimiters: {
+                        betweenDataSources: self.selectors.generalSettings.delimiters.betweenDataSources.getValue(),
+                        multipleStatsForPlayer: self.selectors.generalSettings.delimiters.multipleStatsForPlayer.getValue(),
+                    }
                 },
                 platformSelectors: {}
             }
@@ -1295,9 +1315,8 @@
 
             let dataSourceDelimiterField = DOM.makeInputField(
                 'Between Data Sources',
-                'self.dataSourcesTab.selectors.prefix.iddfdsafasd',  // todo figure out selector
-
-                '/',
+                self.selectors.generalSettings.delimiters.betweenDataSources.id,
+                state.general.delimiters.betweenDataSources,
                 {
                     styles: 'width: 100%',
                     placeholder: 'Ex: /'
@@ -1306,8 +1325,8 @@
 
             let samePlayerWithinDataSourcesField = DOM.makeInputField(
                 'Player listed multiple times in a given data set',
-                'self.dataSourcesTab.selectors.prefix.iddfdsafasd',  // todo figure out selector                
-                '|',
+                self.selectors.generalSettings.delimiters.multipleStatsForPlayer.id,
+                state.general.delimiters.multipleStatsForPlayer,
                 { styles: 'width: 100%', placeholder: 'Ex: |' }
             );
 
