@@ -21,17 +21,21 @@
     const DOM = makeDOMModule();
     const UTILS = makeUtilsModule();
 
-    const SETTINGS = makeSettingsModule();
+    const FUSE = makeFUSEConfiguratorModule();
+    const DATASOURCESTAB = makeDataSourcesTabModule()
     const BORISCHEN = makeBorisChenModule();
     const SUBVERTADOWN = makeSubvertADownModule();
     const CUSTOMDATA = makeCustomDataModule();
+
+    const SETTINGSTAB = makeSettingsTabModule();
+
     const PLAYERS = makePlayersModule();
 
     const DSTNames = PLAYERS.getDSTNames();
     await BORISCHEN.runBorisChenAutoUpdate();
     UI.autoInjectFUSEOnDOMChange();
 
-    const showSettingsBtn = DOM.makePageButton('fuseShowSettings', '⚙', 100, SETTINGS.editSettings);
+    const showConfiguratorBtn = DOM.makePageButton('fuseOpenConfigurator', '⚙', 100, FUSE.openConfigurator);
 
     function makeUIModule() {
         const self = {
@@ -95,86 +99,52 @@
 
         function injectFUSEInfoIntoFantasySite() {
             const spans = document.querySelectorAll(`.${self.selectors.playerInfo}`);
-            const state = STORE.getState().data;
+            const state = STORE.getState();
+            const dataSources = state.data;
+            const settings = state.settings;
 
             spans.forEach(span => {
                 span.remove();
             });
 
             if (window.location.host === 'fantasy.espn.com') {
-                updateESPNPlayerInfo();
+                updatePlatformPlayerInfo('espn');
             }
 
             if (window.location.host === 'football.fantasysports.yahoo.com') {
-                updateYahooPlayerInfo();
+                updatePlatformPlayerInfo('yahoo');
             }
 
             if (window.location.host === 'fantasy.nfl.com') {
-                updateNFLPlayerInfo();
+                updatePlatformPlayerInfo('nfl');
             }
 
             if (window.location.host === 'sleeper.com') {
-                updateSleeperPlayerInfo();
+                updatePlatformPlayerInfo('sleeper');
             }
 
             if (window.location.host.includes('football.cbssports.com')) {
-                updateCBSPlayerInfo();
+                updatePlatformPlayerInfo('cbs');
             }
 
-            function updateESPNPlayerInfo() {
-                document.querySelectorAll('.player-column__bio .AnchorLink.link').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-column__bio', '.player-column__position');
-                });
+            function updatePlatformPlayerInfo(platformName) {
+                let platform = SETTINGSTAB.platformSelectors[platformName]
+
+                for (const [pageName, page] of Object.entries(platform)) {
+                    let pageOverrides = settings.platformSelectors[platformName]?.[pageName];
+                    const playerName = pageOverrides?.playerName?.playerName_override || page.playerName;
+                    const parent = pageOverrides?.parent?.parent_override || page.parent;
+                    const rowAfterPlayerName = pageOverrides?.rowAfterPlayerName?.rowAfterPlayerName_override || page.rowAfterPlayerName;
+
+                    document.querySelectorAll(playerName).forEach(playerNameEl => {
+                        insertFUSEPlayerInfo(playerNameEl, parent, rowAfterPlayerName, {}, settings.general.delimiters);
+                    });
+                }
             }
 
-            function updateYahooPlayerInfo() {
-                document.querySelectorAll('.ysf-player-name a').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, 'td', '.ysf-player-detail', { fontWeight: '700' });
-                });
-            }
-
-            function updateNFLPlayerInfo() {
-                document.querySelectorAll('.playerName').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.playerNameAndInfo', 'em', { fontWeight: '900' });
-                });
-            }
-
-            function updateSleeperPlayerInfo() {
-                // matchup page
-                document.querySelectorAll('.matchup-player-item .player-name > div:first-child').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-name', '.player-pos', { fontWeight: '900' });
-                });
-
-                // team page
-                document.querySelectorAll('.team-roster-item .player-name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.cell-player-meta', '.game-schedule-live-description', { fontWeight: '900' });
-                });
-
-                // players page
-                document.querySelectorAll('.player-meta-container .name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.name-container', '.position', { fontWeight: '900' });
-                });
-
-                // trend page
-                document.querySelectorAll('.trending-list-item .name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-details', '.position', { fontWeight: '900' });
-                });
-
-                // scores page
-                document.querySelectorAll('.scores-content .player-meta .name').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, '.player-meta', '.position', { fontWeight: '900' });
-                });
-            }
-
-            function updateCBSPlayerInfo() {
-                document.querySelectorAll('.playerLink').forEach(playerNameEl => {
-                    insertFUSEPlayerInfo(playerNameEl, 'td', 'playerPositionAndTeam', { fontWeight: '900', marginLeft: '2px' });
-                });
-            }
-
-            function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles) {
+            function insertFUSEPlayerInfo(playerNameEl, parentSelector, rowAfterPlayerNameSelector, styles, delimiters) {
                 const name = playerNameEl.innerText;
-                const info = constructPlayerInfo(name);
+                const info = constructPlayerInfo(name, delimiters);
 
                 if (info) {
                     const fuseInfo = createPlayerInfoElement(info, styles);
@@ -190,7 +160,7 @@
                 }
             }
 
-            function constructPlayerInfo(name) {
+            function constructPlayerInfo(name, delimiters) {
                 if (!name) {
                     return '';
                 }
@@ -198,12 +168,12 @@
                 const playerName = name.replace(' D/ST', '').trim();
 
                 let info = [
-                    BORISCHEN.getPlayerInfo(state.borisChen, playerName),
-                    SUBVERTADOWN.getPlayerInfo(state.subvertADown, playerName),
-                    CUSTOMDATA.getPlayerInfo(state.customData, playerName),
+                    BORISCHEN.getPlayerInfo(dataSources.borisChen, playerName),
+                    SUBVERTADOWN.getPlayerInfo(dataSources.subvertADown, playerName),
+                    CUSTOMDATA.getPlayerInfo(dataSources.customData, playerName),
                 ];
 
-                return info.filter(i => i).join('/');
+                return info.filter(i => i).join(delimiters.betweenDataSources);
             }
 
             function createPlayerInfoElement(info, { marginLeft = '0', marginRight = '2px', fontWeight = '900' } = {}) {
@@ -240,7 +210,8 @@
                     borisChen: BORISCHEN.getDefaultState(),
                     subvertADown: SUBVERTADOWN.getDefaultState(),
                     customData: CUSTOMDATA.getDefaultState()
-                }
+                },
+                settings: SETTINGSTAB.getDefaultState(),
             };
 
             const result = UTILS.mergeDeep(defaults, parsedData)
@@ -261,12 +232,12 @@
             getDSTNames
         }
 
-        function addPlayerInfoToDictionary(player, newInfo, playerDictionary) {
+        function addPlayerInfoToDictionary(player, newInfo, playerDictionary, delimiters) {
             const playerName = player.replace(' III', '').replace(' II', '').trim();
             let infoToSave = playerDictionary[playerName]
 
             if (infoToSave) {
-                infoToSave += `|${newInfo}`;
+                infoToSave += `${delimiters.multipleStatsForPlayer}${newInfo}`;
             } else {
                 infoToSave = newInfo;
             }
@@ -348,73 +319,49 @@
             return dynamicTeamNames;
         }
     }
-    function makeSettingsModule() {
+
+    function makeFUSEConfiguratorModule() {
         const self = {
-            editSettings,
-            hideSettings,
+            openConfigurator,
+            closeConfigurator,
             selectors: {
-                panel: UI.makeSelector('fuseSettingsPanel'),
-                tabs: UI.makeSelector('fuseSettingsPanel__tabs'),
+                panel: UI.makeSelector('fuseConfiguratorPanel'),
+                tabs: UI.makeSelector('fuseConfiguratorPanel__tabs'),
             }
         }
 
         return self;
 
-        function editSettings() {
+        function openConfigurator() {
             if (self.selectors.panel.get()) {
-                hideSettings();
+                closeConfigurator();
 
                 return;
             }
 
-            let settingsPanel = createMainSettingsPanel();
-            let contentContainer = document.createElement('div');
-            contentContainer.style.cssText = `
-                padding: 10px;
-            `;
+            let configModal = createConfiguratorModal();
+            const dataSourcesTab = DATASOURCESTAB.makeDataSourcesTabContent();
+            let settingsTab = SETTINGSTAB.makeSettingsTabContent();
+            configModal.appendChild(DOM.makeTabs([
+                { label: 'Data', default: true, contents: dataSourcesTab },
+                { label: 'Settings', contents: settingsTab },
+            ], {
+                selector: FUSE.selectors.tabs.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249)',
+                    padding: '5px',
+                    beforeContent: true,
+                },
+                tabContent: {
+                    padding: '0'
+                }
+            }));
 
-            const state = STORE.getState().data
+            configModal.appendChild(createActionsSection());
+            configModal.appendChild(createInfoSection());
 
-            const borisChenTab = BORISCHEN.settingsPanel.createTab(state.borisChen)
-            const toggleBorisChenTab = DOM.makeButton('BorisChen', () => {
-                toggleTabs(borisChenTab.id)
-            });
-
-            const subvertADownTab = SUBVERTADOWN.settingsPanel.createSubvertADownTab(state.subvertADown);
-            const toggleSubvertADownTab = DOM.makeButton('SubvertADown', () => {
-                toggleTabs(subvertADownTab.id)
-            });
-
-            const customDataTab = CUSTOMDATA.settingsPanel.createCustomDataTab(state.customData);
-            const toggleCustomData = DOM.makeButton('CustomData', () => {
-                toggleTabs(customDataTab.id)
-            });
-            contentContainer.appendChild(toggleBorisChenTab);
-            contentContainer.appendChild(toggleSubvertADownTab);
-            contentContainer.appendChild(toggleCustomData);
-            contentContainer.appendChild(borisChenTab);
-            contentContainer.appendChild(subvertADownTab);
-            contentContainer.appendChild(customDataTab);
-
-            const saveBtn = DOM.makeButton('Save', () => {
-                let state = STORE.getState();
-
-                state.data.borisChen = BORISCHEN.updateState(state.data.borisChen)
-                state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown)
-                state.data.customData = CUSTOMDATA.updateState(state.data.customData)
-
-                STORE.saveState(state);
-                hideSettings();
-                UI.injectFUSEInfoIntoFantasySite();
-            });
-
-            contentContainer.appendChild(saveBtn);
-            contentContainer.appendChild(DOM.makeButton('Hide', hideSettings));
-            settingsPanel.appendChild(contentContainer);
-            settingsPanel.appendChild(createInfoSection());
-
-            document.body.insertBefore(settingsPanel, document.getElementById(showSettingsBtn.id).nextSibling);
-            toggleTabs(borisChenTab.id);
+            document.body.insertBefore(configModal, document.getElementById(showConfiguratorBtn.id).nextSibling);
 
             function createInfoSection() {
                 const info = document.createElement('div');
@@ -432,11 +379,11 @@
 
                 return info;
             }
-            function createMainSettingsPanel() {
-                const settingsPanel = document.createElement('div');
+            function createConfiguratorModal() {
+                const dataSourcesTab = document.createElement('div');
 
-                settingsPanel.setAttribute('id', self.selectors.panel.id);
-                settingsPanel.style.cssText = `
+                dataSourcesTab.setAttribute('id', self.selectors.panel.id);
+                dataSourcesTab.style.cssText = `
                     position: fixed;
                     top: 125px;
                     right: 0;
@@ -448,36 +395,90 @@
                     box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
                 `;
 
-                return settingsPanel
+                return dataSourcesTab
             }
 
-            function hideAllTabs() {
-                const tabs = document.querySelectorAll(`.${self.selectors.tabs.id}`);
+            function createActionsSection() {
+                let actionsSection = document.createElement('div');
+                actionsSection.style.cssText = `
+                    padding: 10px;
+                    border-top: 1px solid #ccc;
+                `;
 
-                tabs.forEach(tab => {
-                    tab.style.display = 'none';
+                const saveBtn = DOM.makeButton('Save', () => {
+                    let state = STORE.getState();
+
+                    state.data.borisChen = BORISCHEN.updateState(state.data.borisChen);
+                    state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown);
+                    state.data.customData = CUSTOMDATA.updateState(state.data.customData);
+                    state.settings = SETTINGSTAB.updateState();
+
+                    STORE.saveState(state);
+                    closeConfigurator();
+                    UI.injectFUSEInfoIntoFantasySite();
                 });
-            };
 
-            function showTab(tabId) {
-                var element = document.getElementById(tabId);
-                element.style.display = 'block';
+                actionsSection.appendChild(saveBtn);
+                actionsSection.appendChild(DOM.makeButton('Hide', closeConfigurator));
+
+                return actionsSection;
             }
 
-            function toggleTabs(tabId) {
-                hideAllTabs();
-                showTab(tabId);
-            }
         }
 
-        function hideSettings() {
+        function closeConfigurator() {
             document.body.removeChild(self.selectors.panel.get());
         }
     }
 
+    function makeDataSourcesTabModule() {
+        function dataSourcesTabSelector() {
+            return UI.makeSelector(`${FUSE.selectors.tabs.id}__dataSources`);
+        }
+        const self = {
+            makeDataSourcesTabContent,
+            selectors: {
+                root: dataSourcesTabSelector()
+            }
+        }
+
+        return self;
+
+        function makeDataSourcesTabContent() {
+            const state = STORE.getState().data
+            let tabContent = document.createElement('div');
+
+            const borisChenTab = BORISCHEN.dataSourcesTab.createTabContent(state.borisChen)
+            const subvertADownTab = SUBVERTADOWN.dataSourcesTab.createTabContent(state.subvertADown);
+            const customDataTab = CUSTOMDATA.dataSourcesTab.createTabContent(state.customData);
+
+            tabContent.appendChild(DOM.makeTabs([
+                { label: 'BorisChen', default: true, contents: borisChenTab },
+                { label: 'SubvertADown', contents: subvertADownTab },
+                { label: 'CustomData', contents: customDataTab }
+            ], {
+                selector: self.selectors.root.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249)',
+                    beforeContent: true,
+                    padding: '10px',
+                },
+                tabContent: {
+                    padding: '10px',
+                    level: 1
+                }
+            }));
+
+            return tabContent
+        }
+    }
+
     function makeBorisChenModule() {
+        const rootSelector = `${DATASOURCESTAB.selectors.root.id}__borisChen`;
+
         function borisChenSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__borisChen_${id}`, attribute);
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
         const scoreSuffix = {
@@ -491,8 +492,8 @@
             getDefaultState,
             updateState,
             getPlayerInfo,
-            settingsPanel: {
-                createTab,
+            dataSourcesTab: {
+                createTabContent,
                 selectors: {
                     tab: borisChenSelector('tab'),
                     prefix: borisChenSelector('prefix'),
@@ -501,8 +502,8 @@
                     lastFetched: borisChenSelector('lastFetched', 'data-state'),
                     fetchDataBtn: borisChenSelector('fetchDataBtn'),
                     positions: {
-                        id: (position) => `${SETTINGS.selectors.tabs.id}_borisChen_${position}`,
-                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_borisChen_${position}`),
+                        id: (position) => `${rootSelector}_${position}`,
+                        get: (position) => document.getElementById(`${rootSelector}_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -576,6 +577,7 @@
         }
 
         function parseBorischenRawData(rawTierData) {
+            const delimiters = STORE.getState().settings.general.delimiters;
             const playerDictionary = {};
 
             parseTierInfo(rawTierData.QB, playerDictionary);
@@ -601,7 +603,7 @@
                     const playersInTier = row[1];
 
                     playersInTier?.split(', ').forEach((player, index) => {
-                        PLAYERS.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary);
+                        PLAYERS.addPlayerInfoToDictionary(player, `${tier}.${index + 1}`, playerDictionary, delimiters);
                     });
                 });
 
@@ -684,25 +686,28 @@
             }
         }
 
-        function createTab(savedData) {
-            const { selectors } = self.settingsPanel;
-            const tab = DOM.makeTabElement(
-                selectors.tab.id,
-                "To get the tier data from www.borisChen.co for your league's point values and paste the raw tier info into the below text areas."
-            );
+        function createTabContent(savedData) {
+            const { selectors } = self.dataSourcesTab;
+            const tabContent = document.createElement('div');
+            const helpText = document.createElement('p');
+            helpText.textContent = 'Configure your league scoring setting and automatically fetch data from from www.borisChen.co or paste it in manually.';
+            helpText.style.marginBottom = '10px';
+            tabContent.appendChild(helpText);
 
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 selectors.prefix.id,
-                'Ex: BC',
                 savedData.prefix,
+                {
+                    placeholder: 'Ex: BC'
+                }
             );
 
-            tab.appendChild(prefixField);
+            tabContent.appendChild(prefixField);
             const positions = ['QB', 'RB', 'WR', 'TE', 'FLEX', 'DST', 'K'];
             if (GM?.info) {
-                const dataSettings = document.createElement('div');
-                dataSettings.style.cssText = `
+                const autoFetchSettings = document.createElement('div');
+                autoFetchSettings.style.cssText = `
                     display: flex;
                     justify-content: space-between;
                     margin-bottom: 10px;
@@ -752,12 +757,12 @@
                     }
                 }, selectors.fetchDataBtn.id);
 
-                dataSettings.appendChild(scoringField);
-                dataSettings.appendChild(autoFetchField);
-                dataSettings.appendChild(lastFetchedField);
+                autoFetchSettings.appendChild(scoringField);
+                autoFetchSettings.appendChild(autoFetchField);
+                autoFetchSettings.appendChild(lastFetchedField);
 
-                tab.appendChild(dataSettings);
-                tab.appendChild(fetchDataBtn);
+                tabContent.appendChild(autoFetchSettings);
+                tabContent.appendChild(fetchDataBtn);
             }
 
             for (const position of positions) {
@@ -767,14 +772,14 @@
                     savedData.raw[position],
                 );
 
-                tab.appendChild(positionField);
+                tabContent.appendChild(positionField);
             }
 
-            return tab;
+            return tabContent;
         }
 
         function getFormData() {
-            const { selectors } = self.settingsPanel;
+            const { selectors } = self.dataSourcesTab;
             const data = {
                 raw: {},
                 prefix: selectors.prefix.getValue(),
@@ -794,23 +799,24 @@
     }
 
     function makeSubvertADownModule() {
+        const rootSelector = `${DATASOURCESTAB.selectors.root.id}__subvertADown`;
         function subvertADownSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__subvertADown_${id}`, attribute);
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
         const self = {
             getDefaultState,
             updateState,
             getPlayerInfo,
-            settingsPanel: {
-                createSubvertADownTab,
+            dataSourcesTab: {
+                createTabContent,
                 selectors: {
                     tab: subvertADownSelector('tab'),
                     prefix: subvertADownSelector('prefix'),
                     raw: subvertADownSelector('raw'),
                     positions: {
-                        id: (position) => `${SETTINGS.selectors.tabs.id}_subvertADown_${position}`,
-                        get: (position) => document.getElementById(`${SETTINGS.selectors.tabs.id}_subvertADown_${position}`),
+                        id: (position) => `${rootSelector}_${position}`,
+                        get: (position) => document.getElementById(`${rootSelector}_${position}`),
                         getValue: function (position) {
                             const el = this.get(position);
                             return el ? el.value : '';
@@ -847,52 +853,57 @@
 
             return `${state.prefix || ''}${playerInfo}`
         }
-        function createSubvertADownTab(savedData) {
-            const tab = DOM.makeTabElement(
-                self.settingsPanel.selectors.tab.id,
-                "Copy data from https://subvertadown.com and paste the raw tier info into the below text areas."
-            );
+        function createTabContent(savedData) {
+            const tabContent = document.createElement('div');
+
+            const helpText = document.createElement('p');
+            helpText.textContent = 'Copy data from https://subvertadown.com and paste the raw tier info into the below text areas.';
+            helpText.style.marginBottom = '10px';
+            tabContent.appendChild(helpText);
 
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
-                self.settingsPanel.selectors.prefix.id,
-                'Ex: SD',
+                self.dataSourcesTab.selectors.prefix.id,
                 savedData.prefix,
+                {
+                    placeholder: 'Ex: SD'
+                }
             );
 
-            tab.appendChild(prefixField);
+            tabContent.appendChild(prefixField);
 
             const positions = ['DST', 'QB', 'K'];
 
             for (const position of positions) {
                 const positionField = DOM.makeTextAreaField(
                     position,
-                    self.settingsPanel.selectors.positions.id(position),
+                    self.dataSourcesTab.selectors.positions.id(position),
                     savedData.raw[position],
                 );
 
-                tab.appendChild(positionField);
+                tabContent.appendChild(positionField);
             }
 
-            return tab;
+            return tabContent;
         }
 
         function getSubvertADownFormData() {
             const data = {
                 raw: {},
-                prefix: self.settingsPanel.selectors.prefix.getValue(),
+                prefix: self.dataSourcesTab.selectors.prefix.getValue(),
             };
 
             const positions = ['QB', 'DST', 'K'];
 
             for (const position of positions) {
-                data.raw[position] = self.settingsPanel.selectors.positions.getValue(position)
+                data.raw[position] = self.dataSourcesTab.selectors.positions.getValue(position)
             }
 
             return data;
         }
 
         function parseSubvertADownFormRawData(rawData) {
+            const delimiters = STORE.getState().settings.general.delimiters;
             const playersDictionary = {};
 
             processData(rawData.DST, playersDictionary, true);
@@ -919,7 +930,7 @@
                             player = `${player}`;
                         }
                     } else {
-                        PLAYERS.addPlayerInfoToDictionary(player, line.trim(), playersDictionary);
+                        PLAYERS.addPlayerInfoToDictionary(player, line.trim(), playersDictionary, delimiters);
 
                         // reset for next iteration
                         player = ''
@@ -932,16 +943,17 @@
     }
 
     function makeCustomDataModule() {
+        const rootSelector = `${DATASOURCESTAB.selectors.root.id}__customData`;
         function customDataSelector(id, attribute) {
-            return UI.makeSelector(`${SETTINGS.selectors.tabs.id}__customData_${id}`, attribute);
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
         const self = {
             getDefaultState,
             updateState,
             getPlayerInfo,
-            settingsPanel: {
-                createCustomDataTab,
+            dataSourcesTab: {
+                createTabContent,
                 selectors: {
                     tab: customDataSelector('tab'),
                     prefix: customDataSelector('prefix'),
@@ -984,23 +996,27 @@
             return `${state.prefix || ''}${playerInfo}`
         }
 
-        function createCustomDataTab(savedData) {
-            const { selectors } = self.settingsPanel;
-            const tab = DOM.makeTabElement(
-                selectors.tab.id,
-                "Paste in your own data from a spreadsheet or another website."
-            );
+        function createTabContent(savedData) {
+            const { selectors } = self.dataSourcesTab;
+            const tabContent = document.createElement('div');
+
+            const helpText = document.createElement('p');
+            helpText.textContent = 'Paste in your own data from a spreadsheet or another website.';
+            helpText.style.marginBottom = '10px';
+            tabContent.appendChild(helpText);
 
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 selectors.prefix.id,
-                'Ex: C',
                 savedData.prefix,
+                {
+                    placeholder: 'Ex: C'
+                }
             );
 
-            tab.appendChild(prefixField);
-            const dataSettings = document.createElement('div');
-            dataSettings.style.cssText = `
+            tabContent.appendChild(prefixField);
+            const customDataSettings = document.createElement('div');
+            customDataSettings.style.cssText = `
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 10px;
@@ -1012,7 +1028,7 @@
                 ['Tab', 'Space', 'Comma'],
                 savedData.delimiter
             );
-            dataSettings.appendChild(delimiterField);
+            customDataSettings.appendChild(delimiterField);
 
             const playerColumnField = DOM.makeDropdownField(
                 'Player Column',
@@ -1020,7 +1036,7 @@
                 Array(20).fill().map((_, i) => i + 1),
                 savedData.playerColumn
             );
-            dataSettings.appendChild(playerColumnField);
+            customDataSettings.appendChild(playerColumnField);
 
             const displayColumnField = DOM.makeDropdownField(
                 'Display Columns',
@@ -1028,9 +1044,9 @@
                 ['All', ...Array(20).fill().map((_, i) => i + 1)],
                 savedData.displayColumn
             );
-            dataSettings.appendChild(displayColumnField);
+            customDataSettings.appendChild(displayColumnField);
 
-            tab.appendChild(dataSettings);
+            tabContent.appendChild(customDataSettings);
 
             const positionField = DOM.makeTextAreaField(
                 'Custom',
@@ -1039,13 +1055,13 @@
                 { height: '200px', placeholder: 'Patrick Mahomes, Regress to mean' }
             );
 
-            tab.appendChild(positionField);
+            tabContent.appendChild(positionField);
 
-            return tab;
+            return tabContent;
         }
 
         function getCustomDataFormData() {
-            const { selectors } = self.settingsPanel;
+            const { selectors } = self.dataSourcesTab;
             const data = {
                 raw: {},
                 prefix: selectors.prefix.getValue(),
@@ -1060,10 +1076,11 @@
         }
 
         function parseCustomDataFormData(rawData, savedData) {
+            const delimiters = STORE.getState().settings.general.delimiters;
             const playersDictionary = {};
             const lines = rawData.custom.split('\n');
 
-            const delimiters = {
+            const inputDelimiters = {
                 'Tab': '\t',
                 'Space': ' ',
                 'Comma': ','
@@ -1073,7 +1090,7 @@
                 const line = lines[i].trim();
                 if (line.length === 0) continue;
 
-                const columns = line.split(delimiters[savedData.delimiter]);
+                const columns = line.split(inputDelimiters[savedData.delimiter]);
                 const playerName = columns[savedData.playerColumn - 1];
                 if (!playerName) continue;
 
@@ -1087,10 +1104,256 @@
 
                 restOfData = restOfData.map(d => d.trim());
 
-                PLAYERS.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary);
+                PLAYERS.addPlayerInfoToDictionary(playerName, restOfData.join(',').trim(), playersDictionary, delimiters);
             }
 
             return playersDictionary;
+        }
+    }
+
+    function makeSettingsTabModule() {
+        const rootSelector = `${FUSE.selectors.tabs.id}__settings`;
+        function settingsTabSelector(id, attribute) {
+            return UI.makeSelector(`${rootSelector}_${id}`, attribute);
+        }
+
+        function platformSelectorsSelector(id, attribute) {
+            return settingsTabSelector(`platformSelectors__${id}`, attribute)
+        }
+
+        function generalSettingsSelector(id, attribute) {
+            return settingsTabSelector(`general__${id}`, attribute)
+        }
+
+
+        const platformSelectors = {
+            espn: {
+                common: {
+                    playerName: '.player-column__bio .AnchorLink.link',
+                    parent: '.player-column__bio',
+                    rowAfterPlayerName: '.player-column__position'
+                }
+            },
+            yahoo: {
+                common: {
+                    playerName: '.ysf-player-name a',
+                    parent: 'td',
+                    rowAfterPlayerName: '.ysf-player-detail'
+                }
+            },
+            nfl: {
+                common: {
+                    playerName: '.playerName',
+                    parent: '.playerNameAndInfo',
+                    rowAfterPlayerName: 'em',
+                }
+            },
+            cbs: {
+                common: {
+                    playerName: '.playerLink',
+                    parent: 'td',
+                    rowAfterPlayerName: '.playerPositionAndTeam'
+                }
+            },
+            sleeper: {
+                matchup: {
+                    playerName: '.matchup-player-item .player-name > div:first-child',
+                    parent: '.player-name',
+                    rowAfterPlayerName: '.player-pos'
+                },
+                team: {
+                    playerName: '.team-roster-item .player-name',
+                    parent: '.cell-player-meta',
+                    rowAfterPlayerName: '.game-schedule-live-description'
+                },
+                players: {
+                    playerName: '.player-meta-container .name',
+                    parent: '.name-container',
+                    rowAfterPlayerName: '.position'
+                },
+                trend: {
+                    playerName: '.trending-list-item .name',
+                    parent: '.player-details',
+                    rowAfterPlayerName: '.position'
+                },
+                scores: {
+                    playerName: '.scores-content .player-meta .name',
+                    parent: '.player-meta',
+                    rowAfterPlayerName: '.position'
+                },
+            }
+        }
+
+        const self = {
+            getDefaultState,
+            updateState,
+            makeSettingsTabContent,
+            platformSelectors,
+            selectors: {
+                root: settingsTabSelector(),
+                generalSettings: {
+                    delimiters: {
+                        betweenDataSources: generalSettingsSelector('delimiters__betweenDataSources'),
+                        multipleStatsForPlayer: generalSettingsSelector('delimiters__multipleStatsForPlayer'),
+                    }
+                }
+            }
+        }
+
+        return self;
+
+        function getDefaultState() {
+            return {
+                general: {
+                    delimiters: {
+                        betweenDataSources: '/',
+                        multipleStatsForPlayer: '|'
+                    }
+
+                },
+                platformSelectors: {}
+            }
+        }
+
+        function updateState(oldState) {
+            let newState = {
+                ...oldState, ...getSettingsTabFormData()
+            }
+
+            return newState;
+        }
+
+        function getSettingsTabFormData() {
+            const data = {
+                general: {
+                    delimiters: {
+                        betweenDataSources: self.selectors.generalSettings.delimiters.betweenDataSources.getValue(),
+                        multipleStatsForPlayer: self.selectors.generalSettings.delimiters.multipleStatsForPlayer.getValue(),
+                    }
+                },
+                platformSelectors: {}
+            }
+
+            for (const [platformName, platform] of Object.entries(platformSelectors)) {
+                data.platformSelectors[platformName] = {};
+                for (const [pageName, page] of Object.entries(platform)) {
+                    data.platformSelectors[platformName][pageName] = {};
+                    for (const [keyName] of Object.entries(page)) {
+                        if (keyName !== 'selectors') {
+                            let keyOverrideValue = platformSelectors[platformName][pageName].selectors[keyName].keyOverrideSelector.getValue();
+
+                            if (keyOverrideValue) {
+                                data.platformSelectors[platformName][pageName][keyName] = {
+                                    [`${keyName}_override`]: keyOverrideValue
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        function makeSettingsTabContent() {
+            const state = STORE.getState().settings;
+            const tabContent = document.createElement('div');
+            tabContent.style.cssText = `
+                padding: 10px;
+            `
+            const platformSelectorsSubTab = document.createElement('div');
+
+            for (const [platformName, platform] of Object.entries(platformSelectors)) {
+                let platformHeading = document.createElement('h4');
+                platformHeading.textContent = platformName;
+                platformSelectorsSubTab.appendChild(platformHeading);
+
+                for (const [pageName, page] of Object.entries(platform)) {
+                    if (pageName !== 'common') {
+                        let pageHeading = document.createElement('h5');
+                        pageHeading.textContent = `${pageName} Page`;
+                        platformSelectorsSubTab.appendChild(pageHeading);
+                    }
+
+                    for (const [keyName, keyValue] of Object.entries(page)) {
+                        let keySelector = platformSelectorsSelector(`${platformName}_${pageName}_${keyName}`)
+                        let keyOverrideSelector = platformSelectorsSelector(`${keySelector.id}_override`);
+                        platformSelectorsSubTab.appendChild(
+                            DOM.makeInputField(
+                                keyName,
+                                keySelector.id,
+                                keyValue,
+                                { disabled: true }
+                            )
+                        );
+                        let fieldInput = DOM.makeInputField(
+                            `${keyName} Override`,
+                            keyOverrideSelector.id,
+                            state.platformSelectors[platformName]?.[pageName]?.[keyName]?.[`${keyName}_override`] || '',
+                            { styles: 'width: 100%' }
+                        );
+                        if (!platformSelectors[platformName][pageName].selectors) {
+                            platformSelectors[platformName][pageName].selectors = {}
+                        }
+
+                        platformSelectors[platformName][pageName].selectors[keyName] = {
+                            keySelector,
+                            keyOverrideSelector
+                        };
+
+                        platformSelectorsSubTab.appendChild(fieldInput)
+
+                    }
+                }
+            }
+
+            const generalTab = document.createElement('div');
+            let delimiterSectionHeading = document.createElement('h3');
+            delimiterSectionHeading.textContent = `Delimiters`;
+            generalTab.appendChild(delimiterSectionHeading);
+
+            let dataSourceDelimiterField = DOM.makeInputField(
+                'Between Data Sources',
+                self.selectors.generalSettings.delimiters.betweenDataSources.id,
+                state.general.delimiters.betweenDataSources,
+                {
+                    styles: 'width: 100%',
+                    placeholder: 'Ex: /'
+                }
+            );
+
+            let samePlayerWithinDataSourcesField = DOM.makeInputField(
+                'Player listed multiple times in a given data set',
+                self.selectors.generalSettings.delimiters.multipleStatsForPlayer.id,
+                state.general.delimiters.multipleStatsForPlayer,
+                { styles: 'width: 100%', placeholder: 'Ex: |' }
+            );
+
+            generalTab.appendChild(dataSourceDelimiterField)
+            generalTab.appendChild(samePlayerWithinDataSourcesField)
+
+
+            tabContent.appendChild(DOM.makeTabs([
+                { label: 'General', default: true, contents: generalTab },
+                { label: 'Platform Selectors', contents: platformSelectorsSubTab },
+            ], {
+                selector: self.selectors.root.id,
+                tabLabels: {
+                    backgroundColor: '#eee',
+                    activeBackgroundColor: 'rgb(249, 249, 249)',
+                    padding: '5px',
+                    beforeContent: true,
+                },
+                tabContent: {
+                    padding: '10px',
+                    level: 1
+                }
+            }));
+
+
+            return tabContent
+
         }
     }
 
@@ -1145,8 +1408,7 @@
     }
 
     function makeDOMModule() {
-
-        return {
+        const self = {
             makePageButton,
             makeButton,
             makeTabElement,
@@ -1154,8 +1416,11 @@
             makeReadOnlyField,
             makeInputField,
             makeTextAreaField,
-            makeDropdownField
+            makeDropdownField,
+            makeTabs
         }
+
+        return self;
 
         function makePageButton(id, text, offset, onClick) {
             const existingBtn = document.getElementById(id);
@@ -1202,25 +1467,6 @@
             return button;
         }
 
-        function makeTabElement(id, content) {
-            const tab = document.createElement('div');
-            tab.id = id;
-            tab.className = SETTINGS.selectors.tabs.id;
-            tab.style.cssText += `
-                padding: 10px;
-                max-height: 70vh;
-                overflow-y: auto;
-            `;
-
-            const helpText = document.createElement('p');
-            helpText.textContent = content;
-            helpText.style.marginBottom = '10px';
-
-            tab.appendChild(helpText);
-
-            return tab;
-        }
-
         function makeLabelElement(text) {
             const label = document.createElement('label');
             label.textContent = text;
@@ -1233,6 +1479,7 @@
             const field = document.createElement('div');
             const label = makeLabelElement(labelText);
             const displayValue = document.createElement('span');
+
             displayValue.id = id;
             displayValue.setAttribute('data-state', state);
             displayValue.style.marginBottom = '10px';
@@ -1244,19 +1491,21 @@
             return field;
         }
 
-        function makeInputField(labelText, id, placeholder, value,) {
+        function makeInputField(labelText, id, value, options = {}) {
             const field = document.createElement('div');
             const label = makeLabelElement(labelText)
 
             const input = document.createElement('input');
             input.id = id;
-            input.placeholder = placeholder;
+            input.placeholder = options.placeholder || '';
             input.value = value || '';
+            input.disabled = options.disabled;
             input.style.cssText = `
                 margin-bottom: 10px;
-                background-color: white;
+                ${options.disabled ? '' : 'background-color: white'};
                 border: 1px solid black;
                 padding: 3px;
+                ${options.styles}
             `;
 
 
@@ -1313,6 +1562,111 @@
             field.appendChild(selectElement);
 
             return field;
+        }
+
+        function makeTabs(tabs, options) {
+            const tabContainer = document.createElement('div');
+            const tabLabels = document.createElement('div');
+            tabLabels.style.cssText = `
+                display: flex;  
+                justify-content: space-between;
+                background-color: ${options.tabLabels.backgroundColor};  
+            `;
+
+            const tabContents = document.createElement('div');
+
+            tabs.forEach((tab, index) => {
+                const tabNameLabel = document.createElement('div');
+                tabNameLabel.textContent = tab.label;
+                tabNameLabel.id = `${options.selector}_${index}_label`;
+                tabNameLabel.classList.add(`${options.selector}_label`);
+
+                tabNameLabel.style.cssText = `
+                    padding: ${options.tabLabels.padding};
+                    width: 100%;
+                    cursor: pointer;
+                    border-bottom: 1px solid #ccc;
+                    background-color: inherit;
+                `;
+
+                if (tab.default) {
+                    tabNameLabel.style.borderBottom = 'none';
+                    tabNameLabel.style.backgroundColor = options.tabLabels.activeBackgroundColor;
+                }
+
+                tabNameLabel.addEventListener('click', () => {
+                    hideAllTabs();
+                    showTab(`${options.selector}_${index}`);
+                });
+
+                tabLabels.appendChild(tabNameLabel);
+                tabContents.appendChild(
+                    makeTabElement(
+                        `${options.selector}_${index}_content`,
+                        `${options.selector}_content`,
+                        tab.contents,
+                        {
+                            active: tab.default,
+                            padding: options.tabContent.padding,
+                            level: options.tabContent.level
+                        }
+                    )
+                );
+
+            });
+
+            if (options.tabLabels.beforeContent) {
+                tabContainer.appendChild(tabLabels);
+            }
+
+            tabContainer.appendChild(tabContents);
+
+            if (options.tabLabels.afterContent) {
+                tabContainer.appendChild(tabLabels);
+            }
+
+            return tabContainer;
+
+
+            function hideAllTabs() {
+                const tabLabel = document.querySelectorAll(`.${options.selector}_label`);
+
+                tabLabel.forEach(tab => {
+                    tab.style.borderBottom = '1px solid #ccc';
+                    tab.style.backgroundColor = 'inherit';
+                });
+
+                const tabContents = document.querySelectorAll(`.${options.selector}_content`);
+
+                tabContents.forEach(tab => {
+                    tab.style.display = 'none';
+                });
+            };
+
+            function showTab(contentSelector) {
+                let tabNameLabel = document.getElementById(`${contentSelector}_label`);
+                tabNameLabel.style.borderBottom = 'none';
+                tabNameLabel.style.backgroundColor = options.tabLabels.activeBackgroundColor;
+
+                let tabContent = document.getElementById(`${contentSelector}_content`);
+                tabContent.style.display = 'block';
+            }
+        }
+
+        function makeTabElement(id, classSelector, content, options) {
+            const tab = document.createElement('div');
+            tab.id = id;
+            tab.className = classSelector;
+            tab.style.cssText += `
+                padding: ${options.padding};
+                max-height: ${70 - (options.level || 0) * 5}vh;
+                overflow-y: auto;
+                display: ${options?.active ? 'block' : 'none'};
+            `;
+
+            tab.appendChild(content);
+
+            return tab;
         }
     }
 }
