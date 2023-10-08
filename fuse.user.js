@@ -244,7 +244,8 @@
                     borisChen: BORISCHEN.getDefaultState(),
                     subvertADown: SUBVERTADOWN.getDefaultState(),
                     customData: CUSTOMDATA.getDefaultState()
-                }
+                },
+                settings: SETTINGSTAB.getDefaultState(),
             };
 
             const result = UTILS.mergeDeep(defaults, parsedData)
@@ -441,9 +442,10 @@
                 const saveBtn = DOM.makeButton('Save', () => {
                     let state = STORE.getState();
 
-                    state.data.borisChen = BORISCHEN.updateState(state.data.borisChen)
-                    state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown)
-                    state.data.customData = CUSTOMDATA.updateState(state.data.customData)
+                    state.data.borisChen = BORISCHEN.updateState(state.data.borisChen);
+                    state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown);
+                    state.data.customData = CUSTOMDATA.updateState(state.data.customData);
+                    state.settings = SETTINGSTAB.updateState();
 
                     STORE.saveState(state);
                     closeConfigurator();
@@ -728,7 +730,7 @@
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 selectors.prefix.id,
-                savedData.prefix, 
+                savedData.prefix,
                 {
                     placeholder: 'Ex: BC'
                 }
@@ -1038,7 +1040,7 @@
             const prefixField = DOM.makeInputField(
                 'Prefix (optional)',
                 selectors.prefix.id,
-                savedData.prefix, 
+                savedData.prefix,
                 {
                     placeholder: 'Ex: C'
                 }
@@ -1146,23 +1148,14 @@
             return UI.makeSelector(`${rootSelector}_${id}`, attribute);
         }
 
-        function platformSelectorsSelector(id, attribute){
+        function platformSelectorsSelector(id, attribute) {
             return settingsTabSelector(`platformSelectors__${id}`, attribute)
         }
-        const self = {
-            getDefaultState,
-            updateState, // TODO make
-            makeSettingsTabContent,
-            selectors: {
-                root: settingsTabSelector()
-            }
-        }
 
-        return self;
 
         const platformSelectors = {
             espn: {
-                common: {            
+                common: {
                     playerName: '.player-column__bio .AnchorLink.link',
                     parent: '.player-column__bio',
                     rowAfterPlayerName: '.player-column__position'
@@ -1217,10 +1210,24 @@
                 },
             }
         }
-        
+
+        const self = {
+            getDefaultState,
+            updateState,
+            makeSettingsTabContent,
+            selectors: {
+                root: settingsTabSelector()
+            }
+        }
+
+        return self;
+
         function getDefaultState() {
             return {
+                general: {
 
+                },
+                platformSelectors: {}
             }
         }
 
@@ -1232,89 +1239,87 @@
             return newState;
         }
 
-        function getSettingsTabFormData(){
+        function getSettingsTabFormData() {
             const data = {
-                general:{
+                general: {
 
                 },
-                platformSelectors: {
-                    
+                platformSelectors: {}
+            }
+
+            for (const [platformName, platform] of Object.entries(platformSelectors)) {
+                data.platformSelectors[platformName] = {};
+                for (const [pageName, page] of Object.entries(platform)) {
+                    data.platformSelectors[platformName][pageName] = {};
+                    for (const [keyName] of Object.entries(page)) {
+                        if (keyName !== 'selectors') {
+                            let keyOverrideValue = platformSelectors[platformName][pageName].selectors[keyName].keyOverrideSelector.getValue();
+
+                            if (keyOverrideValue) {
+                                data.platformSelectors[platformName][pageName][keyName] = {
+                                    [`${keyName}_override`]: keyOverrideValue
+                                }
+                            }
+                        }
+
+                    }
                 }
             }
 
-            Object.keys(platformSelectors).forEach(platform => {
-                let platformHeading = document.createElement('h4');
-                platformHeading.textContent = platform;
-                platformSelectorsSubTab.appendChild(platformHeading);
-                platformSelectors[platform].forEach((selectorGroup, selectorGroupIndex) => {
-                    Object.keys(selectorGroup).forEach(key => {
-                            data.platformSelectors[platform][selectorGroupIndex] = {
-                                
-                            }
-
-                            platformSelectors[platform][selectorGroupIndex].selectors[key] = {
-                                keySelector,
-                                keyOverrideSelector
-                            };
-
-                    })
-
-                })
-
-            });
+            return data;
         }
 
         function makeSettingsTabContent() {
+            const state = STORE.getState().settings;
             const tabContent = document.createElement('div');
             tabContent.style.cssText = `
                 padding: 10px;
             `
             const platformSelectorsSubTab = document.createElement('div');
 
-            Object.keys(platformSelectors).forEach(platform => {
+            for (const [platformName, platform] of Object.entries(platformSelectors)) {
                 let platformHeading = document.createElement('h4');
-                platformHeading.textContent = platform;
+                platformHeading.textContent = platformName;
                 platformSelectorsSubTab.appendChild(platformHeading);
-                platformSelectors[platform].forEach((selectorGroup, selectorGroupIndex) => {
-                    Object.keys(selectorGroup).forEach(key => {
-                        if (key === 'pageName' && selectorGroup.pageName) {
-                            let pageHeading = document.createElement('h5');
-                            pageHeading.textContent = `${selectorGroup.pageName} Page`;
-                            platformSelectorsSubTab.appendChild(pageHeading);
-                        } else {
-                            let keySelector = platformSelectorsSelector(`${platform}_${selectorGroup.pageName}_${key}`)
-                            let keyOverrideSelector = platformSelectorsSelector( `${keySelector.id}_override`);
-                            platformSelectorsSubTab.appendChild(
-                                DOM.makeInputField(
-                                    key, 
-                                    keySelector.id, 
-                                    selectorGroup[key], 
-                                    { disabled: true }
-                                )
-                            );
-                            let fieldInput = DOM.makeInputField(
-                                `${key} Override`,
-                                keyOverrideSelector.id,
-                                '', // todo set value from state
-                                { styles: 'width: 100%' }
-                            );
-                            if(!platformSelectors[platform][selectorGroupIndex].selectors){
-                                platformSelectors[platform][selectorGroupIndex].selectors = {}
-                            }
 
-                            platformSelectors[platform][selectorGroupIndex].selectors[key] = {
-                                keySelector,
-                                keyOverrideSelector
-                            };
-                            
-                            platformSelectorsSubTab.appendChild(fieldInput)
+                for (const [pageName, page] of Object.entries(platform)) {
+                    if (pageName !== 'common') {
+                        let pageHeading = document.createElement('h5');
+                        pageHeading.textContent = `${pageName} Page`;
+                        platformSelectorsSubTab.appendChild(pageHeading);
+                    }
+
+                    for (const [keyName, keyValue] of Object.entries(page)) {
+                        let keySelector = platformSelectorsSelector(`${platformName}_${pageName}_${keyName}`)
+                        let keyOverrideSelector = platformSelectorsSelector(`${keySelector.id}_override`);
+                        platformSelectorsSubTab.appendChild(
+                            DOM.makeInputField(
+                                keyName,
+                                keySelector.id,
+                                keyValue,
+                                { disabled: true }
+                            )
+                        );
+                        let fieldInput = DOM.makeInputField(
+                            `${keyName} Override`,
+                            keyOverrideSelector.id,
+                            state.platformSelectors[platformName]?.[pageName]?.[keyName]?.[`${keyName}_override`] || '',
+                            { styles: 'width: 100%' }
+                        );
+                        if (!platformSelectors[platformName][pageName].selectors) {
+                            platformSelectors[platformName][pageName].selectors = {}
                         }
 
-                    })
+                        platformSelectors[platformName][pageName].selectors[keyName] = {
+                            keySelector,
+                            keyOverrideSelector
+                        };
 
-                })
+                        platformSelectorsSubTab.appendChild(fieldInput)
 
-            });
+                    }
+                }
+            }
 
             const generalTab = document.createElement('div');
             let delimiterSectionHeading = document.createElement('h3');
