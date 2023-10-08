@@ -349,7 +349,7 @@
                 selector: FUSE.selectors.tabs.id,
                 tabLabels: {
                     backgroundColor: '#eee',
-                    activeBackgroundColor: 'rgb(249, 249, 249',
+                    activeBackgroundColor: 'rgb(249, 249, 249)',
                     padding: '5px',
                     beforeContent: true,
                 },
@@ -460,7 +460,7 @@
                 selector: self.selectors.root.id,
                 tabLabels: {
                     backgroundColor: '#eee',
-                    activeBackgroundColor: 'rgb(249, 249, 249',
+                    activeBackgroundColor: 'rgb(249, 249, 249)',
                     beforeContent: true,
                     padding: '10px',
                 },
@@ -1341,7 +1341,7 @@
                 selector: self.selectors.root.id,
                 tabLabels: {
                     backgroundColor: '#eee',
-                    activeBackgroundColor: 'rgb(249, 249, 249',
+                    activeBackgroundColor: 'rgb(249, 249, 249)',
                     padding: '5px',
                     beforeContent: true,
                 },
