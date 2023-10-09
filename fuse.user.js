@@ -407,12 +407,17 @@
 
                 const saveBtn = DOM.makeButton('Save', () => {
                     let state = STORE.getState();
+                    state.settings = SETTINGSTAB.updateState();
+
+                    // the data source parcers use the updated settings state
+                    // so if you modify settings, we'll need to save them to local storage
+                    // before running update state on the data sources
+                    STORE.saveState(state);
 
                     state.data.borisChen = BORISCHEN.updateState(state.data.borisChen);
                     state.data.subvertADown = SUBVERTADOWN.updateState(state.data.subvertADown);
                     state.data.customData = CUSTOMDATA.updateState(state.data.customData);
-                    state.settings = SETTINGSTAB.updateState();
-
+                    
                     STORE.saveState(state);
                     closeConfigurator();
                     UI.injectFUSEInfoIntoFantasySite();
